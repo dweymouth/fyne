@@ -130,9 +130,9 @@ func newAppWithDriver(d fyne.Driver, id string) fyne.App {
 		newApp.storage.Docs = &internal.Docs{} // an empty impl to avoid crashes
 	}
 
-	if !d.Device().IsMobile() {
-		newApp.settings.watchSettings()
-	}
+	//if !d.Device().IsMobile() {
+	//	newApp.settings.watchSettings()
+	//}
 
 	repository.Register("http", intRepo.NewHTTPRepository())
 	repository.Register("https", intRepo.NewHTTPRepository())
