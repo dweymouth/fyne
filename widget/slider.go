@@ -34,6 +34,9 @@ type Slider struct {
 	Orientation Orientation
 	OnChanged   func(float64)
 
+	// Since: 2.4
+	OnChangeEnded func(float64)
+
 	binder basicBinder
 }
 
@@ -76,6 +79,9 @@ func (s *Slider) Bind(data binding.Float) {
 
 // DragEnd function.
 func (s *Slider) DragEnd() {
+	if s.OnChangeEnded != nil {
+		s.OnChangeEnded(s.Value)
+	}
 }
 
 // Dragged function.
@@ -179,6 +185,9 @@ func (s *Slider) SetValue(value float64) {
 
 	if s.OnChanged != nil {
 		s.OnChanged(s.Value)
+	}
+	if s.OnChangeEnded != nil {
+		s.OnChangeEnded(s.Value)
 	}
 
 	s.Refresh()
