@@ -29,6 +29,9 @@ func GetAspect(img *canvas.Image) float32 {
 		aspect = aspects[img.Resource.Name()]
 	} else if img.File != "" {
 		aspect = aspects[img.File]
+	} else if img.Image != nil { // HOTFIX until Fyne 2.4 proper fix
+		size := img.Image.Bounds().Size()
+		return float32(size.X) / float32(size.Y)
 	}
 
 	if aspect == 0 {
@@ -132,7 +135,8 @@ func paintImage(img *canvas.Image, width, height int, wantOrigSize bool, wantOri
 	case img.Image != nil:
 		origSize := img.Image.Bounds().Size()
 		origW, origH = origSize.X, origSize.Y
-		if checkSize(origSize.X, origSize.Y) {
+		// HOTFIX until Fyne 2.4: don't store aspect in map
+		if !wantOrigSize || (wantOrigW == origW && wantOrigH == origH) {
 			dst = scaleImage(img.Image, width, height, img.ScaleMode)
 		}
 	default:
