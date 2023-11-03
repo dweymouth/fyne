@@ -112,7 +112,7 @@ func (d *gLDriver) drawSingleFrame() {
 }
 
 func (d *gLDriver) runGL() {
-	eventTick := time.NewTicker(time.Second / 60)
+	//eventTick := time.NewTicker(time.Second / 60)
 
 	run.L.Lock()
 	run.flag = true
@@ -127,7 +127,7 @@ func (d *gLDriver) runGL() {
 	for {
 		select {
 		case <-d.done:
-			eventTick.Stop()
+			//eventTick.Stop()
 			d.drawDone <- nil // wait for draw thread to stop
 			d.Terminate()
 			fyne.CurrentApp().Lifecycle().(*app.Lifecycle).TriggerStopped()
@@ -137,8 +137,9 @@ func (d *gLDriver) runGL() {
 			if f.done != nil {
 				f.done <- struct{}{}
 			}
-		case <-eventTick.C:
-			d.tryPollEvents()
+		//case <-eventTick.C:
+		default:
+			d.tryWaitEventsTimeout(0.08333)
 			windowsToRemove := 0
 			for _, win := range d.windowList() {
 				w := win.(*window)
