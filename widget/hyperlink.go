@@ -27,6 +27,9 @@ type Hyperlink struct {
 	// Since: 2.5
 	Truncation fyne.TextTruncation
 
+	// Custom for Supersonic - unreleased in Fyne
+	SizeName fyne.ThemeSizeName
+
 	// OnTapped overrides the default `fyne.OpenURL` call when the link is tapped
 	//
 	// Since: 2.2
@@ -243,16 +246,22 @@ func (hl *Hyperlink) openURL() {
 func (hl *Hyperlink) syncSegments() {
 	hl.provider.Wrapping = hl.Wrapping
 	hl.provider.Truncation = hl.Truncation
+	sizeName := theme.SizeNameText
+	if hl.SizeName != "" {
+		sizeName = hl.SizeName
+	}
 	hl.provider.Segments = []RichTextSegment{&TextSegment{
 		Style: RichTextStyle{
 			Alignment: hl.Alignment,
 			ColorName: theme.ColorNameHyperlink,
 			Inline:    true,
 			TextStyle: hl.TextStyle,
+			SizeName:  sizeName,
 		},
 		Text: hl.Text,
 	}}
-	hl.textSize = fyne.MeasureText(hl.Text, theme.TextSize(), hl.TextStyle)
+	th := fyne.CurrentApp().Settings().Theme()
+	hl.textSize = fyne.MeasureText(hl.Text, th.Size(sizeName), hl.TextStyle)
 }
 
 var _ fyne.WidgetRenderer = (*hyperlinkRenderer)(nil)
