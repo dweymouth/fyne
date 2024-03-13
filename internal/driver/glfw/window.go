@@ -514,6 +514,9 @@ func (w *window) processMouseClicked(button desktop.MouseButton, action action, 
 	}
 
 	if button == desktop.MouseButtonBack || button == desktop.MouseButtonForward {
+		if action == press {
+			return
+		}
 		if w.canvas.onMouseBack != nil && button == desktop.MouseButtonBack {
 			w.canvas.onMouseBack()
 		} else if w.canvas.onMouseForward != nil && button == desktop.MouseButtonForward {
