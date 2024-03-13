@@ -112,6 +112,10 @@ func (c *mobileCanvas) SetOnTypedRune(typed func(rune)) {
 	c.onTypedRune = typed
 }
 
+func (*mobileCanvas) SetOnMouseBack(func()) {}
+
+func (*mobileCanvas) SetOnMouseForward(func()) {}
+
 func (c *mobileCanvas) Size() fyne.Size {
 	return c.size
 }

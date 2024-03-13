@@ -513,6 +513,15 @@ func (w *window) processMouseClicked(button desktop.MouseButton, action action, 
 		w.mouseLock.Unlock()
 	}
 
+	if button == desktop.MouseButtonBack || button == desktop.MouseButtonForward {
+		if w.canvas.onMouseBack != nil && button == desktop.MouseButtonBack {
+			w.canvas.onMouseBack()
+		} else if w.canvas.onMouseForward != nil && button == desktop.MouseButtonForward {
+			w.canvas.onMouseForward()
+		}
+		return
+	}
+
 	co, pos, _ := w.findObjectAtPositionMatching(w.canvas, mousePos, func(object fyne.CanvasObject) bool {
 		switch object.(type) {
 		case fyne.Tappable, fyne.SecondaryTappable, fyne.DoubleTappable, fyne.Focusable, desktop.Mouseable, desktop.Hoverable:

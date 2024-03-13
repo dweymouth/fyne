@@ -44,6 +44,10 @@ type Canvas interface {
 	AddShortcut(shortcut Shortcut, handler func(shortcut Shortcut))
 	RemoveShortcut(shortcut Shortcut)
 
+	// Supersonic-specific extensions
+	SetOnMouseBack(func())
+	SetOnMouseForward(func())
+
 	Capture() image.Image
 
 	// PixelCoordinateForPosition returns the x and y pixel coordinate for a given position on this canvas.
