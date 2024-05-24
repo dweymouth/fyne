@@ -25,6 +25,10 @@ type PopUp struct {
 // Hide this widget, if it was previously visible
 func (p *PopUp) Hide() {
 	if p.overlayShown {
+		// Temporary fix for #4374
+		// TODO: remove when proper fix is in
+		p.Canvas.Unfocus()
+
 		p.Canvas.Overlays().Remove(p)
 		p.overlayShown = false
 	}
