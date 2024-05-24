@@ -23,6 +23,16 @@ const (
 	// Since: 2.0
 	MouseButtonTertiary
 
+	// MouseButtonBack is the back mouse button
+	//
+	// Since: <Supersonic specific extension>
+	MouseButtonBack
+
+	// MouseButtonForward is the back mouse button
+	//
+	// Since: <Supersonic specific extension>
+	MouseButtonForward
+
 	// LeftMouseButton is the most common mouse button - on some systems the only one.
 	//
 	// Deprecated: use MouseButtonPrimary which will adapt to mouse configuration.
