@@ -12,7 +12,6 @@ import (
 	"github.com/rymdport/portal/notification"
 	"github.com/rymdport/portal/openuri"
 	portalSettings "github.com/rymdport/portal/settings"
-	"github.com/rymdport/portal/settings/appearance"
 
 	"fyne.io/fyne/v2"
 	internalapp "fyne.io/fyne/v2/internal/app"
@@ -36,24 +35,43 @@ func (a *fyneApp) OpenURL(url *url.URL) error {
 
 // fetch color variant from dbus portal desktop settings.
 func findFreedesktopColorScheme() fyne.ThemeVariant {
-	colorScheme, err := appearance.GetColorScheme()
+	dbusConn, err := dbus.SessionBus()
 	if err != nil {
+		fyne.LogError("Unable to connect to session D-Bus", err)
 		return theme.VariantDark
 	}
 
-	return colorSchemeToThemeVariant(colorScheme)
-}
+	dbusObj := dbusConn.Object("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop")
+	call := dbusObj.Call(
+		"org.freedesktop.portal.Settings.Read",
+		dbus.FlagNoAutoStart,
+		"org.freedesktop.appearance",
+		"color-scheme",
+	)
+	if call.Err != nil {
+		// many desktops don't have this exported yet
+		return theme.VariantDark
+	}
 
-func colorSchemeToThemeVariant(colorScheme appearance.ColorScheme) fyne.ThemeVariant {
-	switch colorScheme {
-	case appearance.Light:
+	var value uint8
+	if err = call.Store(&value); err != nil {
+		fyne.LogError("failed to read theme variant from D-Bus", err)
+		return theme.VariantDark
+	}
+
+	// See: https://github.com/flatpak/xdg-desktop-portal/blob/1.16.0/data/org.freedesktop.impl.portal.Settings.xml#L32-L46
+	// 0: No preference
+	// 1: Prefer dark appearance
+	// 2: Prefer light appearance
+	switch value {
+	case 2:
 		return theme.VariantLight
-	case appearance.Dark:
+	case 1:
 		return theme.VariantDark
+	default:
+		// Default to light theme to support Gnome's default see https://github.com/fyne-io/fyne/pull/3561
+		return theme.VariantLight
 	}
-
-	// Default to light theme to support Gnome's default see https://github.com/fyne-io/fyne/pull/3561
-	return theme.VariantLight
 }
 
 func (a *fyneApp) SendNotification(n *fyne.Notification) {
