@@ -960,14 +960,6 @@ func lineBounds(seg *TextSegment, wrap fyne.TextWrap, trunc fyne.TextTruncation,
 	widthChecker := func(low int, high int) bool {
 		return measurer(text[low:high]).Width <= measureWidth
 	}
-	// Supersonic: temporary fix for https://github.com/fyne-io/fyne/issues/4998
-	widthCheckerEllipsis := func(low, high int) bool {
-		if low == 0 && high == len(text)-1 {
-			return measurer(text[low:high]).Width <= measureWidth
-		}
-		return measurer(text[low:high]).Width+
-			measurer([]rune{'…'}).Width <= measureWidth
-	}
 
 	reuse := 0
 	yPos := float32(0)
@@ -1073,9 +1065,19 @@ func lineBounds(seg *TextSegment, wrap fyne.TextWrap, trunc fyne.TextTruncation,
 			}
 		default:
 			if trunc == fyne.TextTruncateEllipsis {
-				// Supersonic: temporary fix for https://github.com/fyne-io/fyne/issues/4998
-				high = binarySearch(widthCheckerEllipsis, low, high)
-				bounds = append(bounds, rowBoundary{[]RichTextSegment{seg}, reuse, low, high, high < len(text)})
+				// Supersonic: tmp fix for https://github.com/fyne-io/fyne/issues/4998
+				high = binarySearch(widthChecker, low, high)
+				ellipsis := high < len(text)
+				if ellipsis && high > 0 && low < high {
+					// trim off up to 2 characters to make room for ellipsis
+					ellipsisWidth := fyne.MeasureText("…", seg.size(), seg.Style.TextStyle).Width
+					if fyne.MeasureText(string(text[high-1:high]), seg.size(), seg.Style.TextStyle).Width < ellipsisWidth && high > 1 && low < high-1 {
+						high -= 2
+					} else {
+						high -= 1
+					}
+				}
+				bounds = append(bounds, rowBoundary{[]RichTextSegment{seg}, reuse, low, high, ellipsis})
 				reuse++
 
 				/* orig Fyne code:
