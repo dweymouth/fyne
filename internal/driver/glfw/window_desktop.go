@@ -329,7 +329,7 @@ func (w *window) moved(_ *glfw.Window, x, y int) {
 }
 
 func (w *window) resized(_ *glfw.Window, width, height int) {
-	w.processResized(width, height)
+	w.ProcessResized(width, height)
 }
 
 func (w *window) scaled(_ *glfw.Window, x float32, y float32) {

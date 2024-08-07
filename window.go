@@ -102,4 +102,7 @@ type Window interface {
 
 	// Clipboard returns the system clipboard
 	Clipboard() Clipboard
+
+	// Supersonic-specific for workaround window sizing issue on startup
+	ProcessResized(w, h int)
 }

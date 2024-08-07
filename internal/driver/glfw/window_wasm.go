@@ -161,7 +161,7 @@ func (w *window) moved(_ *glfw.Window, x, y int) {
 
 func (w *window) resized(_ *glfw.Window, width, height int) {
 	w.canvas.scale = w.calculatedScale()
-	w.processResized(width, height)
+	w.ProcessResized(width, height)
 }
 
 func (w *window) frameSized(_ *glfw.Window, width, height int) {
@@ -551,7 +551,7 @@ func (w *window) create() {
 
 		width, height := win.GetSize()
 		w.processFrameSized(width, height)
-		w.processResized(width, height)
+		w.ProcessResized(width, height)
 	})
 }
 
