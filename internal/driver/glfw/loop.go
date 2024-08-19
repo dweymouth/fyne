@@ -118,10 +118,13 @@ func (d *gLDriver) runGL() {
 		go f() // don't block main, we don't have window event queue
 	}
 
-	// reduce background CPU by polling less frequently
-	// will only affect animation smoothness on ARM Mac (drawOnMainThread)
-	eventTick := time.NewTicker(time.Second / 30)
-	//eventTick := time.NewTicker(time.Second / 60)
+	// reduce background CPU by polling less frequently on non-ARM Mac
+	// would affect animation smoothness on ARM Mac (drawOnMainThread)
+	tickTime := time.Second / 30
+	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+		tickTime = time.Second / 60
+	}
+	eventTick := time.NewTicker(tickTime)
 
 	for {
 		select {
