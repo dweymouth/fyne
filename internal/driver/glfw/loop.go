@@ -1,6 +1,7 @@
 package glfw
 
 import (
+	"log"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -59,6 +60,8 @@ func runOnMainWithWait(f func(), wait bool) {
 
 func (d *gLDriver) drawSingleFrame() {
 	refreshed := false
+	shouldClean := cache.ShouldClean()
+
 	for _, win := range d.windowList() {
 		w := win.(*window)
 		if w.closing {
@@ -69,33 +72,20 @@ func (d *gLDriver) drawSingleFrame() {
 		// because when a window becomes visible, it could be
 		// showing old content without a dirty flag set to true.
 		// Do the clear if and only if the window is visible.
-		if !w.visible || !w.canvas.CheckDirtyAndClear() {
-			// Window hidden or not being redrawn, mark canvasForObject
-			// cache alive if it hasn't been done recently
-			// n.b. we need to make sure threshold is a bit *after*
-			// time.Now() - CacheDuration()
-			threshold := time.Now().Add(10*time.Second - cache.ValidDuration)
-			if w.lastWalkedTime.Before(threshold) {
-				w.canvas.WalkTrees(nil, func(node *drvcommon.RenderCacheNode, _ fyne.Position) {
-					// marks canvas for object cache entry alive
-					_ = cache.GetCanvasForObject(node.Obj())
-					// marks renderer cache entry alive
-					if wid, ok := node.Obj().(fyne.Widget); ok {
-						_, _ = cache.CachedRenderer(wid)
-					}
-				})
-				w.lastWalkedTime = time.Now()
+		if !w.visible || !canvas.CheckDirtyAndClear() {
+			if shouldClean {
+				d.cleanInactiveWindowTextures(w)
 			}
 			continue
 		}
 
-		w.RunWithContext(func() {
-			if w.driver.repaintWindow(w) {
-				refreshed = true
-			}
-		})
+		refreshed = refreshed || d.repaintWindow(w, shouldClean)
 	}
-	cache.Clean(refreshed)
+
+	if shouldClean {
+		log.Println("Cleaning cache")
+		cache.Clean(refreshed)
+	}
 }
 
 func (d *gLDriver) runGL() {
@@ -208,13 +198,27 @@ func (d *gLDriver) destroyWindow(w *window, index int) {
 	}
 }
 
-func (d *gLDriver) repaintWindow(w *window) bool {
+func (d *gLDriver) cleanInactiveWindowTextures(w *window) {
+	w.RunWithContext(func() {
+		// Walk trees of inactive window and mark its contents
+		// as alive in all caches, so they are not cleaned.
+		w.canvas.markAlive()
+		cache.CleanTextTextures(w.canvas)
+	})
+}
+
+func (d *gLDriver) repaintWindow(w *window, cleanTextures bool) bool {
 	canvas := w.canvas
 	freed := false
-	if canvas.EnsureMinSize() {
-		w.shouldExpand = true
-	}
-	freed = canvas.FreeDirtyTextures() > 0
+	w.RunWithContext(func() {
+		if canvas.EnsureMinSize() {
+			w.shouldExpand = true
+		}
+		freed = canvas.FreeDirtyTextures() > 0
+		if cleanTextures {
+			cache.CleanTextTextures(canvas)
+		}
+	})
 
 	updateGLContext(w)
 	canvas.paint(canvas.Size())
