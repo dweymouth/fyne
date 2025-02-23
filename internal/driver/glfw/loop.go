@@ -1,7 +1,6 @@
 package glfw
 
 import (
-	"log"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -68,6 +67,14 @@ func (d *gLDriver) drawSingleFrame() {
 			continue
 		}
 
+		if shouldClean {
+			// perform a complete walk of the canvas
+			// to mark all contained CanvasObjects as alive
+			w.canvas.markObjectsAlive()
+		}
+
+		canvas := w.canvas
+
 		// CheckDirtyAndClear must be checked after visibility,
 		// because when a window becomes visible, it could be
 		// showing old content without a dirty flag set to true.
@@ -83,8 +90,7 @@ func (d *gLDriver) drawSingleFrame() {
 	}
 
 	if shouldClean {
-		log.Println("Cleaning cache")
-		cache.Clean(refreshed)
+		cache.Clean()
 	}
 }
 
@@ -200,10 +206,14 @@ func (d *gLDriver) destroyWindow(w *window, index int) {
 
 func (d *gLDriver) cleanInactiveWindowTextures(w *window) {
 	w.RunWithContext(func() {
-		// Walk trees of inactive window and mark its contents
+		// Walk trees of inactive window and mark its visible contents
 		// as alive in all caches, so they are not cleaned.
 		w.canvas.markAlive()
-		cache.CleanTextTextures(w.canvas)
+		var texFree func(fyne.CanvasObject)
+		if w.canvas.Painter() != nil {
+			texFree = w.canvas.Painter().Free
+		}
+		cache.CleanTextures(w.canvas, texFree)
 	})
 }
 
@@ -215,8 +225,23 @@ func (d *gLDriver) repaintWindow(w *window, cleanTextures bool) bool {
 			w.shouldExpand = true
 		}
 		freed = canvas.FreeDirtyTextures() > 0
+
+		updateGLContext(w)
+		canvas.paint(canvas.Size())
+
+		view := w.viewport
+		visible := w.visible
+
+		if view != nil && visible {
+			view.SwapBuffers()
+		}
+
 		if cleanTextures {
-			cache.CleanTextTextures(canvas)
+			var texFree func(fyne.CanvasObject)
+			if canvas.Painter() != nil {
+				texFree = canvas.Painter().Free
+			}
+			cache.CleanTextures(canvas, texFree)
 		}
 	})
 
