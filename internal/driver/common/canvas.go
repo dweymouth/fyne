@@ -138,7 +138,7 @@ func (c *Canvas) EnsureMinSize() bool {
 			theme.PopRenderingTheme()
 		}
 	}
-	c.WalkCompleteTrees(nil, ensureMinSize)
+	c.WalkTrees(nil, ensureMinSize)
 
 	shouldResize := windowNeedsMinSizeUpdate && (csize.Width < min.Width || csize.Height < min.Height)
 	if shouldResize {
