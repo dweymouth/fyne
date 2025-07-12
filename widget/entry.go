@@ -1,7 +1,9 @@
 package widget
 
 import (
+	"image"
 	"image/color"
+	"math"
 	"runtime"
 	"strings"
 	"time"
@@ -16,6 +18,7 @@ import (
 	"fyne.io/fyne/v2/internal/widget"
 	"fyne.io/fyne/v2/lang"
 	"fyne.io/fyne/v2/theme"
+	"github.com/fogleman/gg"
 )
 
 const (
@@ -167,24 +170,14 @@ func (e *Entry) CreateRenderer() fyne.WidgetRenderer {
 
 	box := canvas.NewRectangle(th.Color(theme.ColorNameInputBackground, v))
 	box.CornerRadius = th.Size(theme.SizeNameInputRadius)
-	border := canvas.NewRectangle(color.Transparent)
-	border.StrokeWidth = th.Size(theme.SizeNameInputBorder)
-	border.StrokeColor = th.Color(theme.ColorNameInputBorder, v)
-	border.CornerRadius = th.Size(theme.SizeNameInputRadius)
+
 	cursor := canvas.NewRectangle(color.Transparent)
 	cursor.Hide()
 
 	e.cursorAnim = newEntryCursorAnimation(cursor)
 	e.content = &entryContent{entry: e}
 	e.scroll = widget.NewScroll(nil)
-	objects := []fyne.CanvasObject{box, border}
-	if e.Wrapping != fyne.TextWrapOff || e.Scroll != widget.ScrollNone {
-		e.scroll.Content = e.content
-		objects = append(objects, e.scroll)
-	} else {
-		e.scroll.Hide()
-		objects = append(objects, e.content)
-	}
+
 	e.content.scroll = e.scroll
 
 	if e.Password && e.ActionItem == nil {
@@ -193,12 +186,23 @@ func (e *Entry) CreateRenderer() fyne.WidgetRenderer {
 		e.ActionItem = newPasswordRevealer(e)
 	}
 
-	if e.ActionItem != nil {
-		objects = append(objects, e.ActionItem)
-	}
-
 	e.syncSegments()
-	return &entryRenderer{box, border, e.scroll, objects, e}
+	er := &entryRenderer{box: box, scroll: e.scroll, entry: e}
+	border := canvas.NewRaster(er.generateBorderRaster)
+	er.border = border
+	er.objects = []fyne.CanvasObject{box, border}
+
+	if e.Wrapping != fyne.TextWrapOff || e.Scroll != widget.ScrollNone {
+		e.scroll.Content = e.content
+		er.objects = append(er.objects, e.scroll)
+	} else {
+		e.scroll.Hide()
+		er.objects = append(er.objects, e.content)
+	}
+	if e.ActionItem != nil {
+		er.objects = append(er.objects, e.ActionItem)
+	}
+	return er
 }
 
 // Cursor returns the cursor type of this widget
@@ -1469,14 +1473,78 @@ func (e *Entry) setFieldsAndRefresh(f func()) {
 var _ fyne.WidgetRenderer = (*entryRenderer)(nil)
 
 type entryRenderer struct {
-	box, border *canvas.Rectangle
-	scroll      *widget.Scroll
+	box    *canvas.Rectangle
+	border *canvas.Raster
+	scroll *widget.Scroll
 
 	objects []fyne.CanvasObject
 	entry   *Entry
+
+	borderRasterImg    image.Image
+	borderRasterColor  color.Color
+	borderRasterStroke float64
+	borderRasterRadius float64
 }
 
 func (r *entryRenderer) Destroy() {
+}
+
+func (r *entryRenderer) generateBorderRaster(w, h int) image.Image {
+	th := r.entry.Theme()
+	v := fyne.CurrentApp().Settings().ThemeVariant()
+
+	scale := 1.0
+	if c := fyne.CurrentApp().Driver().CanvasForObject(r.entry); c != nil {
+		scale = float64(c.Scale())
+	}
+
+	cornerRadius := float64(r.box.CornerRadius) * scale
+	strokeWidth := math.Max(1.0, math.Round(float64(th.Size(theme.SizeNameInputBorder))*scale))
+
+	var strokeColor color.Color
+	if focused := r.entry.focused && !r.entry.Disabled(); focused {
+		strokeColor = th.Color(theme.ColorNamePrimary, v)
+	} else {
+		if r.entry.Disabled() {
+			strokeColor = th.Color(theme.ColorNameDisabled, v)
+		} else {
+			strokeColor = th.Color(theme.ColorNameInputBorder, v)
+		}
+	}
+	if r.entry.Validator != nil {
+		if !r.entry.focused && !r.entry.Disabled() && r.entry.dirty && r.entry.validationError != nil {
+			strokeColor = th.Color(theme.ColorNameError, v)
+		}
+	}
+
+	imgRightSize := r.borderRasterImg != nil && r.borderRasterImg.Bounds().Dx() == w && r.borderRasterImg.Bounds().Dy() == h
+	if imgRightSize && r.borderRasterColor == strokeColor && r.borderRasterRadius == cornerRadius && r.borderRasterStroke == strokeWidth {
+		// re-use cached raster
+	} else {
+		r.regenerateBorderRaster(w, h, strokeWidth, cornerRadius, strokeColor)
+	}
+
+	return r.borderRasterImg
+}
+
+func (r *entryRenderer) regenerateBorderRaster(w, h int, stroke, corner float64, c color.Color) {
+	dc := gg.NewContext(w, h)
+
+	// Transparent background
+	dc.SetRGBA(0, 0, 0, 0)
+	dc.Clear()
+
+	// Draw rounded rectangle border
+	inset := stroke / 2
+	dc.SetColor(c)
+	dc.SetLineWidth(stroke)
+	dc.DrawRoundedRectangle(inset, inset, float64(w)-stroke, float64(h)-stroke, corner)
+	dc.Stroke()
+
+	r.borderRasterImg = dc.Image()
+	r.borderRasterColor = c
+	r.borderRasterRadius = corner
+	r.borderRasterStroke = stroke
 }
 
 func (r *entryRenderer) trailingInset() float32 {
@@ -1508,7 +1576,6 @@ func (r *entryRenderer) Layout(size fyne.Size) {
 
 	// 0.5 is removed so on low DPI it rounds down on the trailing edge
 	r.border.Resize(fyne.NewSize(size.Width-borderSize-.5, size.Height-borderSize-.5))
-	r.border.StrokeWidth = borderSize
 	r.border.Move(fyne.NewSquareOffsetPos(borderSize / 2))
 	r.box.Resize(size.Subtract(fyne.NewSquareSize(borderSize * 2)))
 	r.box.Move(fyne.NewSquareOffsetPos(borderSize))
@@ -1612,7 +1679,7 @@ func (r *entryRenderer) Objects() []fyne.CanvasObject {
 
 func (r *entryRenderer) Refresh() {
 	content := r.entry.content
-	focusedAppearance := r.entry.focused && !r.entry.Disabled()
+	//focusedAppearance := r.entry.focused && !r.entry.Disabled()
 	scroll := r.entry.Scroll
 	wrapping := r.entry.Wrapping
 
@@ -1658,24 +1725,27 @@ func (r *entryRenderer) Refresh() {
 
 	r.box.FillColor = th.Color(theme.ColorNameInputBackground, v)
 	r.box.CornerRadius = th.Size(theme.SizeNameInputRadius)
-	r.border.CornerRadius = r.box.CornerRadius
-	if focusedAppearance {
-		r.border.StrokeColor = th.Color(theme.ColorNamePrimary, v)
-	} else {
-		if r.entry.Disabled() {
-			r.border.StrokeColor = th.Color(theme.ColorNameDisabled, v)
+
+	/*
+		r.border.CornerRadius = r.box.CornerRadius
+		if focusedAppearance {
+			r.border.StrokeColor = th.Color(theme.ColorNamePrimary, v)
 		} else {
-			r.border.StrokeColor = th.Color(theme.ColorNameInputBorder, v)
+			if r.entry.Disabled() {
+				r.border.StrokeColor = th.Color(theme.ColorNameDisabled, v)
+			} else {
+				r.border.StrokeColor = th.Color(theme.ColorNameInputBorder, v)
+			}
 		}
-	}
+	*/
 	if r.entry.ActionItem != nil {
 		r.entry.ActionItem.Refresh()
 	}
 
 	if r.entry.Validator != nil {
-		if !r.entry.focused && !r.entry.Disabled() && r.entry.dirty && r.entry.validationError != nil {
-			r.border.StrokeColor = th.Color(theme.ColorNameError, v)
-		}
+		//if !r.entry.focused && !r.entry.Disabled() && r.entry.dirty && r.entry.validationError != nil {
+		//	r.border.StrokeColor = th.Color(theme.ColorNameError, v)
+		//}
 		r.ensureValidationSetup()
 		r.entry.validationStatus.Refresh()
 	} else if r.entry.validationStatus != nil {
