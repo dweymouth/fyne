@@ -255,6 +255,10 @@ func (c *canvas) SetOnTypedRune(handler func(rune)) {
 	c.onTypedRune = handler
 }
 
+func (*canvas) SetOnMouseBack(func()) {}
+
+func (*canvas) SetOnMouseForward(func()) {}
+
 func (c *canvas) SetPadded(padded bool) {
 	c.propertyLock.Lock()
 	c.padded = padded
