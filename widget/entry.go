@@ -309,6 +309,11 @@ func (e *Entry) FocusGained() {
 
 // FocusLost is called when the Entry has had focus removed.
 func (e *Entry) FocusLost() {
+	// be extra sure we won't "leak" cursor animations
+	if e.cursorAnim != nil {
+		e.cursorAnim.stop()
+	}
+
 	e.setFieldsAndRefresh(func() {
 		e.focused = false
 		e.selectKeyDown = false
