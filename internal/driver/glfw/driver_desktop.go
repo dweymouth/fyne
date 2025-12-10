@@ -58,10 +58,12 @@ func (d *gLDriver) runSystray(m *fyne.Menu) {
 			systray.SetTitle(title)
 		}
 
-		// it must be refreshed after init, so an earlier call would have been ineffective
-		runOnMain(func() {
-			d.refreshSystray(m)
-		})
+		if m != nil {
+			// it must be refreshed after init, so an earlier call would have been ineffective
+			runOnMain(func() {
+				d.refreshSystray(m)
+			})
+		}
 	}, func() {
 		// anything required for tear-down
 	})
@@ -141,6 +143,10 @@ func (d *gLDriver) refreshSystray(m *fyne.Menu) {
 }
 
 func (d *gLDriver) refreshSystrayMenu(m *fyne.Menu, parent *systray.MenuItem) {
+	if m == nil {
+		return
+	}
+
 	for _, i := range m.Items {
 		item := itemForMenuItem(i, parent)
 		if item == nil {
@@ -158,6 +164,21 @@ func (d *gLDriver) refreshSystrayMenu(m *fyne.Menu, parent *systray.MenuItem) {
 				}
 			}
 		}()
+	}
+}
+
+func (d *gLDriver) SetSystemTrayWindow(w fyne.Window) {
+	if !systrayRunning {
+		systrayRunning = true
+		d.runSystray(nil)
+	}
+
+	w.SetCloseIntercept(w.Hide)
+	glw := w.(*window)
+	if glw.decorate {
+		systray.SetOnTapped(glw.Show)
+	} else {
+		systray.SetOnTapped(glw.toggleVisible)
 	}
 }
 

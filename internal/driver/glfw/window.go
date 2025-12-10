@@ -1008,6 +1008,14 @@ func (w *window) isClosing() bool {
 	return closing
 }
 
+func (w *window) toggleVisible() {
+	if w.visible {
+		w.Hide()
+	} else {
+		w.Show()
+	}
+}
+
 func (d *gLDriver) CreateSplashWindow() fyne.Window {
 	win := d.createWindow("", false)
 	win.SetPadded(false)
