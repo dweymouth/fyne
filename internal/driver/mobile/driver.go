@@ -352,7 +352,7 @@ func (d *driver) handlePaint(e paint.Event, w *window) {
 		d.paintWindow(w, newSize)
 		d.app.Publish()
 	}
-	cache.Clean(canvasNeedRefresh)
+	cache.Clean()
 }
 
 func (d *driver) onStart() {

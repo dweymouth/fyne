@@ -985,7 +985,7 @@ func (w *window) doShowAgain() {
 	}
 
 	w.RunWithContext(func() {
-		w.driver.repaintWindow(w)
+		w.driver.repaintWindow(w, false)
 	})
 }
 

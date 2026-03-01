@@ -10,8 +10,7 @@ import (
 var (
 	ValidDuration = 2 * time.Minute
 
-	lastClean                     time.Time
-	skippedCleanWithCanvasRefresh = false
+	lastClean time.Time
 
 	framecounter uint64 = 1
 
@@ -43,7 +42,7 @@ func ShouldClean() bool {
 		shouldFullClean()
 }
 
-// ShouldClean returns whether the clean tasks (CleanTextTextures and Clean)
+// ShouldCleanCanvases returns whether the clean tasks (CleanTextTextures and Clean)
 // should be invoked during the current iteration of the main loop,
 // AND the clean task will include a clean of the CanvasForObject map.
 // If so, the driver should be sure to mark all objects -
@@ -77,7 +76,6 @@ func Clean() {
 
 	if full {
 		destroyExpiredSvgs(now)
-		destroyExpiredFontMetrics(now)
 		destroyExpiredBlurKernels(now)
 	}
 	if full || shouldCleanRenderers {

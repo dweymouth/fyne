@@ -57,7 +57,6 @@ func runOnMainWithWait(f func(), wait bool) {
 }
 
 func (d *gLDriver) drawSingleFrame() {
-	refreshed := false
 	shouldClean := cache.ShouldClean()
 	shouldCleanCanvases := cache.ShouldCleanCanvases()
 
@@ -83,7 +82,9 @@ func (d *gLDriver) drawSingleFrame() {
 			w.canvas.markAlive(false /*visibleOnly*/)
 		}
 
-		refreshed = refreshed || d.repaintWindow(w, shouldClean)
+		w.RunWithContext(func() {
+			w.driver.repaintWindow(w, shouldClean)
+		})
 	}
 
 	if shouldClean {
@@ -233,17 +234,16 @@ func (d *gLDriver) repaintWindow(w *window, cleanTextures bool) bool {
 			view.SwapBuffers()
 		}
 
-		if cleanTextures {
-			// the object tree walks in EnsureMinSize and canvas.paint
-			// will have ensured all alive objects are marked in the caches
-			// No need to call canvas.markAlive
-			var texFree func(fyne.CanvasObject)
-			if canvas.Painter() != nil {
-				texFree = canvas.Painter().Free
-			}
-			cache.CleanTextures(canvas, texFree)
+	if cleanTextures {
+		// the object tree walks in EnsureMinSize and canvas.paint
+		// will have ensured all alive objects are marked in the caches
+		// No need to call canvas.markAlive
+		var texFree func(fyne.CanvasObject)
+		if canvas.Painter() != nil {
+			texFree = canvas.Painter().Free
 		}
-	})
+		cache.CleanTextures(canvas, texFree)
+	}
 
 	updateGLContext(w)
 	canvas.paint(canvas.Size())

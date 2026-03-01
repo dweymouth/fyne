@@ -232,7 +232,7 @@ func (c *Canvas) FreeDirtyTextures() uint64 {
 		c.freeObject(object)
 	}
 
-	cache.RangeExpiredTexturesFor(c.impl, c.painter.Free)
+	cache.CleanTextures(c.impl, c.painter.Free)
 	return objectsToFree
 	for c.refreshQueue.Len() > 0 {
 		object := c.refreshQueue.Out()
@@ -446,14 +446,6 @@ func (c *Canvas) isMenuActive() bool {
 		return am.IsActive()
 	}
 	return true
-}
-
-func (c *Canvas) walkVisibleTree(
-	tree *renderCacheTree,
-	beforeChildren func(*RenderCacheNode, fyne.Position),
-	afterChildren func(*RenderCacheNode, fyne.Position),
-) {
-	c.walkTree(tree, true, beforeChildren, afterChildren)
 }
 
 func (c *Canvas) walkTree(
