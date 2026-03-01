@@ -448,6 +448,14 @@ func (c *Canvas) isMenuActive() bool {
 	return true
 }
 
+func (c *Canvas) walkVisibleTree(
+	tree *renderCacheTree,
+	beforeChildren func(*RenderCacheNode, fyne.Position),
+	afterChildren func(*RenderCacheNode, fyne.Position),
+) {
+	c.walkTree(tree, true, beforeChildren, afterChildren)
+}
+
 func (c *Canvas) walkTree(
 	tree *renderCacheTree,
 	requireVisible bool,
