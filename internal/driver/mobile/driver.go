@@ -215,7 +215,6 @@ func (d *driver) Run() {
 			select {
 			case <-draw.C:
 				d.sendPaintEvent()
-				cache.IncrementFrameCounter()
 			case fn := <-d.queuedFuncs.Out():
 				fn()
 			case e, ok := <-a.Events():
@@ -382,6 +381,7 @@ func (d *driver) handlePaint(e paint.Event, w *window) {
 	if shouldClean {
 		cache.Clean()
 	}
+	cache.IncrementFrameCounter()
 }
 
 func (d *driver) onStart() {
