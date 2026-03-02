@@ -408,12 +408,15 @@ func (c *Canvas) MarkAlive(visibleOnly bool) {
 		}
 
 		switch obj := obj.(type) {
-		case *canvas.LinearGradient, *canvas.RadialGradient, *canvas.Image, *canvas.Raster:
-			_, _ = cache.GetTexture(obj)
 		case *canvas.Text:
 			_, _ = cache.GetTextTexture(glcommon.FontCacheEntryForText(obj, c.impl))
 		case fyne.Widget:
 			_, _ = cache.CachedRenderer(obj)
+		case *fyne.Container:
+			// nothing
+		default:
+			// it is a CanvasObject, and likely has a texture that needs to be kept alive.
+			_, _ = cache.GetTexture(obj)
 		}
 	}
 
