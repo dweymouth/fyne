@@ -244,7 +244,6 @@ func (c *glCanvas) overlayChanged() {
 	c.SetDirty()
 }
 
-
 func (c *glCanvas) paint(size fyne.Size) {
 	clips := &internal.ClipStack{}
 	if c.Content() == nil {

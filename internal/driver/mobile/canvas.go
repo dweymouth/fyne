@@ -429,4 +429,3 @@ func (c *canvas) windowHeadIsDisplacing() bool {
 	}
 	return len(chromeBox.Objects) > 1
 }
-
