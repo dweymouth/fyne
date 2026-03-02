@@ -79,7 +79,7 @@ func (d *gLDriver) drawSingleFrame() {
 			// EnsureMinSize and paint only walk visible trees.
 			// Walk entire trees of window and mark alive,
 			// so that we do not clean CanvasForObject entries of hidden objects.
-			w.canvas.markAlive(false /*visibleOnly*/)
+			w.canvas.MarkAlive(false /*visibleOnly*/)
 		}
 
 		w.RunWithContext(func() {
@@ -206,7 +206,7 @@ func (d *gLDriver) cleanInactiveWindowTextures(w *window, walkVisibleOnly bool) 
 	w.RunWithContext(func() {
 		// Walk trees of inactive window and mark its visible contents
 		// as alive in all caches, so they are not cleaned.
-		w.canvas.markAlive(walkVisibleOnly)
+		w.canvas.MarkAlive(walkVisibleOnly)
 		var texFree func(fyne.CanvasObject)
 		if w.canvas.Painter() != nil {
 			texFree = w.canvas.Painter().Free

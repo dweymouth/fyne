@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/internal/app"
 	"fyne.io/fyne/v2/internal/async"
 	"fyne.io/fyne/v2/internal/cache"
+	glcommon "fyne.io/fyne/v2/internal/common/gl"
 	"fyne.io/fyne/v2/internal/driver"
 	"fyne.io/fyne/v2/internal/painter/gl"
 	"fyne.io/fyne/v2/internal/theme"
@@ -390,6 +391,37 @@ func (c *Canvas) WalkCompleteTrees(
 	afterChildren func(*RenderCacheNode, fyne.Position),
 ) {
 	c.walkTrees(beforeChildren, afterChildren, false)
+}
+
+// MarkAlive walks the object trees for this canvas and marks
+// all cache entries for visible objects alive.
+// It should be called when a clean is requested but the canvas is not being redrawn.
+func (c *Canvas) MarkAlive(visibleOnly bool) {
+	mark := func(node *RenderCacheNode, pos fyne.Position) {
+		obj := node.Obj()
+		_ = cache.GetCanvasForObject(obj)
+
+		// Only CanvasForObject cache needs to be kept alive for invisible objects.
+		// Others may be allowed to expire.
+		if !obj.Visible() {
+			return
+		}
+
+		switch obj := obj.(type) {
+		case *canvas.LinearGradient, *canvas.RadialGradient, *canvas.Image, *canvas.Raster:
+			_, _ = cache.GetTexture(obj)
+		case *canvas.Text:
+			_, _ = cache.GetTextTexture(glcommon.FontCacheEntryForText(obj, c.impl))
+		case fyne.Widget:
+			_, _ = cache.CachedRenderer(obj)
+		}
+	}
+
+	if visibleOnly {
+		c.WalkTrees(mark, nil)
+	} else {
+		c.WalkCompleteTrees(mark, nil)
+	}
 }
 
 func (c *Canvas) walkTrees(
