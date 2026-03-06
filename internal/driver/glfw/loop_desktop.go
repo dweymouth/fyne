@@ -16,6 +16,7 @@ func (d *gLDriver) initGLFW() {
 	}
 
 	initCursors()
+	d.initPlatform()
 }
 
 func (d *gLDriver) pollEvents() {

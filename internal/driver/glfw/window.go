@@ -244,6 +244,13 @@ func (w *window) processClosed() {
 		return
 	}
 
+	// macOS convention: closing the last window hides it rather than quitting.
+	// The app remains running; clicking the dock icon restores the window.
+	if runtime.GOOS == "darwin" && w.master {
+		w.Hide()
+		return
+	}
+
 	w.Close()
 }
 
