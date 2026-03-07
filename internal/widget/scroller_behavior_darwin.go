@@ -3,6 +3,8 @@
 package widget
 
 /*
+#cgo LDFLAGS: -framework AppKit
+
 int getScrollerPagingBehavior();
 int getScrollerStyle();
 void watchScrollerStyle();
