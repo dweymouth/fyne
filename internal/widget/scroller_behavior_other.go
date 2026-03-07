@@ -10,5 +10,5 @@ func scrollBarAlwaysVisible() bool {
 	return true
 }
 
-func subscribeScrollerStyle(_ func()) int { return 0 }
-func unsubscribeScrollerStyle(_ int)      {}
+func subscribeScrollerStyle(_ func()) uint64 { return 0 }
+func unsubscribeScrollerStyle(_ uint64)      {}
