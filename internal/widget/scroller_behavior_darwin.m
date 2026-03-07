@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build !ci && darwin
 
 #import <Foundation/Foundation.h>
 #import <AppKit/NSScroller.h>

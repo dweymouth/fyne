@@ -1,7 +1,6 @@
 package widget
 
 import (
-	"sync/atomic"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -222,7 +221,7 @@ func (r *scrollBarAreaRenderer) Refresh() {
 	r.bar.Refresh()
 	r.background.FillColor = th.Color(theme.ColorNameScrollBarBackground, fyne.CurrentApp().Settings().ThemeVariant())
 	r.background.Hidden = !r.area.isLarge()
-	if !r.area.isLarge() && !scrollBarAlwaysVisible() && !r.area.scroll.scrolling.Load() {
+	if !r.area.isLarge() && !scrollBarAlwaysVisible() && !r.area.scroll.scrolling {
 		r.bar.Hide()
 	} else {
 		r.bar.Show()
@@ -522,7 +521,7 @@ type Scroll struct {
 	// Since: 2.0
 	OnScrolled func(fyne.Position) `json:"-"`
 
-	scrolling      atomic.Bool
+	scrolling      bool
 	scrollEndTimer *time.Timer
 }
 
@@ -619,13 +618,13 @@ func (s *Scroll) Scrolled(ev *fyne.ScrollEvent) {
 		s.scrollBy(ev.Scrolled.DX, ev.Scrolled.DY)
 	}
 	if !scrollBarAlwaysVisible() {
-		s.scrolling.Store(true)
+		s.scrolling = true
 		if s.scrollEndTimer != nil {
 			s.scrollEndTimer.Reset(scrollEndDelay)
 		} else {
 			s.scrollEndTimer = time.AfterFunc(scrollEndDelay, func() {
 				fyne.Do(func() {
-					s.scrolling.Store(false)
+					s.scrolling = false
 					s.refreshBars()
 				})
 			})

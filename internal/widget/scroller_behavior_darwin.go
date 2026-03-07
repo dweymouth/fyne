@@ -12,8 +12,6 @@ void watchScrollerStyle();
 import "C"
 
 import (
-	"sync"
-
 	"fyne.io/fyne/v2"
 )
 
@@ -30,16 +28,16 @@ func scrollBarAlwaysVisible() bool {
 }
 
 var (
-	scrollerStyleWatchOnce   sync.Once
-	scrollerStyleMu          sync.Mutex
-	scrollerStyleSubscribers = map[uint64]func(){}
-	scrollerStyleNextID      uint64
+	isWatchingMacScrollerStyle bool
+	scrollerStyleSubscribers   = map[uint64]func(){}
+	scrollerStyleNextID        uint64
 )
 
 func subscribeScrollerStyle(fn func()) uint64 {
-	scrollerStyleWatchOnce.Do(func() { C.watchScrollerStyle() })
-	scrollerStyleMu.Lock()
-	defer scrollerStyleMu.Unlock()
+	if !isWatchingMacScrollerStyle {
+		isWatchingMacScrollerStyle = true
+		C.watchScrollerStyle()
+	}
 	id := scrollerStyleNextID
 	scrollerStyleNextID++
 	scrollerStyleSubscribers[id] = fn
@@ -47,21 +45,13 @@ func subscribeScrollerStyle(fn func()) uint64 {
 }
 
 func unsubscribeScrollerStyle(id uint64) {
-	scrollerStyleMu.Lock()
-	defer scrollerStyleMu.Unlock()
 	delete(scrollerStyleSubscribers, id)
 }
 
 //export scrollerStyleChanged
 func scrollerStyleChanged() {
-	scrollerStyleMu.Lock()
-	fns := make([]func(), 0, len(scrollerStyleSubscribers))
-	for _, fn := range scrollerStyleSubscribers {
-		fns = append(fns, fn)
-	}
-	scrollerStyleMu.Unlock()
 	fyne.Do(func() {
-		for _, fn := range fns {
+		for _, fn := range scrollerStyleSubscribers {
 			fn()
 		}
 	})
