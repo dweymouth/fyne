@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/go-text/typesetting/di"
 	"github.com/go-text/typesetting/shaping"
@@ -42,8 +43,14 @@ type RichText struct {
 	scr       *widget.Scroll
 	prop      *canvas.Rectangle // used to apply text minsize to the scroller `scr`, if present - TODO improve #2464
 
-	visualCache map[RichTextSegment][]fyne.CanvasObject
-	minCache    fyne.Size
+	visualCache    map[RichTextSegment]visualCacheEntry
+	visualCacheGen int64
+	minCache       fyne.Size
+}
+
+type visualCacheEntry struct {
+	gen int64
+	obj []fyne.CanvasObject
 }
 
 // NewRichText returns a new RichText widget that renders the given text and segments.
@@ -166,7 +173,8 @@ func (t *RichText) deleteFromTo(lowBound int, highBound int) []rune {
 			}
 			continue
 		}
-		end := start + len([]rune(seg.(*TextSegment).Text))
+		r := ([]rune)(seg.(*TextSegment).Text)
+		end := start + len(r)
 		if end < lowBound {
 			segs = append(segs, seg)
 			start = end
@@ -175,7 +183,6 @@ func (t *RichText) deleteFromTo(lowBound int, highBound int) []rune {
 
 		startOff := int(math.Max(float64(lowBound-start), 0))
 		endOff := int(math.Min(float64(end), float64(highBound))) - start
-		r := ([]rune)(seg.(*TextSegment).Text)
 		ret = append(ret, r[startOff:endOff]...)
 		r2 := append(r[:startOff], r[endOff:]...)
 		seg.(*TextSegment).Text = string(r2)
@@ -199,18 +206,20 @@ func (t *RichText) deleteFromTo(lowBound int, highBound int) []rune {
 // The offset value is > 0 if the segment had been split and so we need multiple objects.
 func (t *RichText) cachedSegmentVisual(seg RichTextSegment, offset int) fyne.CanvasObject {
 	if t.visualCache == nil {
-		t.visualCache = make(map[RichTextSegment][]fyne.CanvasObject)
+		t.visualCache = make(map[RichTextSegment]visualCacheEntry)
 	}
 
-	if vis, ok := t.visualCache[seg]; ok && offset < len(vis) {
-		return vis[offset]
+	if vis, ok := t.visualCache[seg]; ok && offset < len(vis.obj) {
+		return vis.obj[offset]
 	}
 
 	vis := seg.Visual()
-	if offset < len(t.visualCache[seg]) {
-		t.visualCache[seg][offset] = vis
+	if offset < len(t.visualCache[seg].obj) {
+		t.visualCache[seg].obj[offset] = vis
 	} else {
-		t.visualCache[seg] = append(t.visualCache[seg], vis)
+		entry := t.visualCache[seg]
+		entry.obj = append(entry.obj, vis)
+		t.visualCache[seg] = entry
 	}
 	return vis
 }
@@ -219,17 +228,20 @@ func (t *RichText) cleanVisualCache() {
 	if len(t.visualCache) <= len(t.Segments) {
 		return
 	}
-	var deletingSegs []RichTextSegment
-	for seg1 := range t.visualCache {
-		found := false
-		for _, seg2 := range t.Segments {
-			if seg1 == seg2 {
-				found = true
-				break
-			}
+
+	// mark cache entries that are still valid
+	t.visualCacheGen++
+	for _, seg := range t.Segments {
+		if cache, ok := t.visualCache[seg]; ok {
+			cache.gen = t.visualCacheGen
+			t.visualCache[seg] = cache
 		}
-		if !found {
-			// cached segment is not currently in t.Segments, clear it
+	}
+
+	// delete entries that are not marked as valid
+	var deletingSegs []RichTextSegment
+	for seg1, cache := range t.visualCache {
+		if cache.gen != t.visualCacheGen {
 			deletingSegs = append(deletingSegs, seg1)
 		}
 	}
@@ -264,7 +276,10 @@ func (t *RichText) insertAt(pos int, runes []rune) {
 	if pos > len(r) { // safety in case position is out of bounds for the segment
 		pos = len(r)
 	}
-	r2 := append(r[:pos], append(runes, r[pos:]...)...)
+	r2 := make([]rune, len(r)+len(runes))
+	copy(r2, r[:pos])
+	copy(r2[pos:], runes)
+	copy(r2[pos+len(runes):], r[pos:])
 	into.Text = string(r2)
 	t.Segments[index] = into
 }
@@ -273,7 +288,7 @@ func (t *RichText) insertAt(pos int, runes []rune) {
 func (t *RichText) len() int {
 	ret := 0
 	for _, seg := range t.Segments {
-		ret += len([]rune(seg.Textual()))
+		ret += utf8.RuneCountInString(seg.Textual())
 	}
 	return ret
 }
@@ -310,11 +325,7 @@ func (t *RichText) lineSizeToColumn(col, row int, textSize, innerPad float32) fy
 			}
 			counted += len(measureText)
 
-			label := canvas.NewText(string(measureText), color.Black)
-			label.TextStyle = text.Style.TextStyle
-			label.TextSize = text.size()
-
-			size = label.MinSize()
+			size, _ = fyne.CurrentApp().Driver().RenderedTextSize(string(measureText), text.size(), text.Style.TextStyle, nil)
 		} else {
 			size = t.cachedSegmentVisual(seg, 0).MinSize()
 		}
