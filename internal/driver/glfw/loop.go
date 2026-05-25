@@ -245,9 +245,6 @@ func (d *gLDriver) repaintWindow(w *window, cleanTextures bool) bool {
 		cache.CleanTextures(canvas, texFree)
 	}
 
-	updateGLContext(w)
-	canvas.paint(canvas.Size())
-
 	return freed
 }
 
