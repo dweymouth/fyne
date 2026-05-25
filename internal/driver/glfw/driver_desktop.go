@@ -16,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/internal/svg"
 	"fyne.io/fyne/v2/lang"
 	"fyne.io/systray"
+	"github.com/go-gl/glfw/v3.3/glfw"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
@@ -27,6 +28,23 @@ var (
 	systrayIcon    fyne.Resource
 	systrayRunning bool
 )
+
+func (d *gLDriver) HasSecondaryDisplay() bool {
+	monitors := glfw.GetMonitors()
+	if len(monitors) == 1 {
+		return false
+	}
+
+	primaryTop, primaryLeft := monitors[0].GetPos()
+	for _, m := range monitors[1:] {
+		top, left := m.GetPos()
+		if top != primaryTop || left != primaryLeft {
+			return true
+		}
+	}
+
+	return false // all the monitors had same origin, thus mirroring
+}
 
 func (d *gLDriver) SetSystemTrayMenu(m *fyne.Menu) {
 	if !systrayRunning {

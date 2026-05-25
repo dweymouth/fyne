@@ -275,6 +275,9 @@ func (l *ListSegment) Segments() []RichTextSegment {
 			indentation := strings.Repeat(" ", l.indentationLevel*4)
 			bullet := &TextSegment{Text: indentation + txt + " ", Style: RichTextStyleStrong}
 			texts = append(texts, bullet)
+			if _, ok := in.(*ParagraphSegment); !ok {
+				in = &ParagraphSegment{Texts: []RichTextSegment{in}}
+			}
 		}
 		texts = append(texts, in)
 		out[i] = &ParagraphSegment{Texts: texts}

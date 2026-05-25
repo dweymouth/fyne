@@ -85,6 +85,7 @@ func (d *gLDriver) drawSingleFrame() {
 		w.RunWithContext(func() {
 			w.driver.repaintWindow(w, shouldClean)
 		})
+		w.updateAccessibility()
 	}
 
 	if shouldClean {

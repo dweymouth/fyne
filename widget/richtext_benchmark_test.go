@@ -1,9 +1,12 @@
 package widget
 
 import (
+	"strings"
 	"testing"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/internal/cache"
+	"fyne.io/fyne/v2/internal/painter"
 )
 
 const loremIpsum = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque quis consectetur nisi. Suspendisse id interdum felis. Sed egestas eget tellus eu pharetra. Praesent pulvinar sed massa id placerat. Etiam sem libero, semper vitae consequat ut, volutpat id mi. Mauris volutpat pellentesque convallis. Curabitur rutrum venenatis orci nec ornare. Maecenas quis pellentesque neque. Aliquam consectetur dapibus nulla, id maximus odio ultrices ac. Sed luctus at felis sed faucibus. Cras leo augue, congue in velit ut, mattis rhoncus lectus.
@@ -43,6 +46,7 @@ func benchmarkTextLineBounds(wrap fyne.TextWrap, b *testing.B) {
 	richText.Wrapping = wrap
 	richText.Truncation = fyne.TextTruncateOff
 	for n := 0; n < b.N; n++ {
+		cache.ClearFontMetrics()
 		lineBounds(richText, richText.Segments[0], 10, fyne.NewSize(10, 14), measurer)
 	}
 }
@@ -63,18 +67,38 @@ func BenchmarkText_lineBounds_WrapWord(b *testing.B) {
 	benchmarkTextLineBounds(fyne.TextWrapWord, b)
 }
 
-func BenchmarkText_ratioSearch(b *testing.B) {
-	text := loremIpsum
+func BenchmarkText_howManyRunesFit_latin(b *testing.B) {
+	text := strings.Split(loremIpsum, "\n")[0]
 	maxWidth := float32(200)
 	textSize := float32(10)
 	textStyle := fyne.TextStyle{}
-	measurer := func(text []rune) float32 {
-		return fyne.MeasureText(string(text), textSize, textStyle).Width
+	fontFace := painter.CachedFontFace(textStyle, nil, nil)
+	measurer := func(text []rune) fyne.Size {
+		size, _ := painter.MeasureString(fontFace.Fonts, string(text), textSize, textStyle)
+		return size
 	}
-	checker := func(low int, high int) float32 {
-		return measurer([]rune(text[low:high])) / maxWidth
-	}
+	charWidth := measurer([]rune("z")).Width
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		ratioSearch(checker, 0, len(text), -1.0)
+		howManyRunesFit([]rune(text), maxWidth, charWidth, measurer)
+	}
+}
+
+func BenchmarkText_howManyRunesFit_chinese(b *testing.B) {
+	text := "昔者文公出走而正天下，畢云：「正，讀如征。」王念孫云「畢讀非也，《爾雅》曰：『正，長也。』晉文為諸侯盟主，故曰『正天下』，與下『霸諸侯』對文。又《廣雅》『正，君也』。《尚賢》篇曰：『堯、舜、禹、湯、文、武之所以王天下正諸侯者』。凡墨子書言正天下正諸侯者，非訓為長，即訓為君，皆非征伐之謂。」案：王說是也。"
+	maxWidth := float32(200)
+	textSize := float32(10)
+	textStyle := fyne.TextStyle{}
+	fontFace := painter.CachedFontFace(textStyle, nil, nil)
+	// make sure the right font for chinese text is loaded
+	fontFace.Fonts.ResolveFace('昔')
+	measurer := func(text []rune) fyne.Size {
+		size, _ := painter.MeasureString(fontFace.Fonts, string(text), textSize, textStyle)
+		return size
+	}
+	charWidth := measurer([]rune("z")).Width
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		howManyRunesFit([]rune(text), maxWidth, charWidth, measurer)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"io"
 	"path/filepath"
 	"strconv"
@@ -80,7 +81,11 @@ func (d *Decoder) Draw(width, height int) (*image.NRGBA, error) {
 	x, y := svgOffset(d.icon, imgW, imgH)
 	d.icon.SetTarget(x, y, float64(imgW), float64(imgH))
 
-	img := image.NewNRGBA(image.Rect(0, 0, imgW, imgH))
+	// Rasterize to RGBA, then copy to NRGBA.
+	// We do this because golang.org/x/image has a fast path for RGBA dst image,
+	// and the fast path is ~69% faster, even with the overhead of copying the RGBA to
+	// NRGBA for returning.
+	img := image.NewRGBA(image.Rect(0, 0, imgW, imgH))
 	scanner := rasterx.NewScannerGV(config.Width, config.Height, img, img.Bounds())
 	raster := rasterx.NewDasher(width, height, scanner)
 
@@ -89,7 +94,10 @@ func (d *Decoder) Draw(width, height int) (*image.NRGBA, error) {
 		err = fmt.Errorf("SVG render error: %w", err)
 		return nil, err
 	}
-	return img, nil
+	bounds := img.Bounds()
+	out := image.NewNRGBA(bounds)
+	draw.Draw(out, bounds, img, bounds.Min, draw.Src)
+	return out, nil
 }
 
 func IsFileSVG(path string) bool {

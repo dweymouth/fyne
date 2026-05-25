@@ -426,7 +426,14 @@ char* listContentURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 	if (contractClass == NULL) { // API 19
 		return "ERROR: Cannot list content for URI";
 	}
-	jmethodID getDoc = find_static_method(env, contractClass, "getTreeDocumentId", "(Landroid/net/Uri;)Ljava/lang/String;");
+
+	bool tree = isTreeURI(env, contractClass, uri);
+	bool document = isDocumentURI(env, ctx, contractClass, uri);
+	char *methodName = "getDocumentId";
+	if (tree && !document) {
+		methodName = "getTreeDocumentId";
+	}
+	jmethodID getDoc = find_static_method(env, contractClass, methodName, "(Landroid/net/Uri;)Ljava/lang/String;");
 	if (getDoc == NULL) { // API 21
 		return "ERROR: Cannot list content for URI";
 	}

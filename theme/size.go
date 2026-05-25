@@ -18,6 +18,11 @@ const (
 	// Since: 2.3
 	SizeNameInnerPadding fyne.ThemeSizeName = "innerPadding"
 
+	// SizeNameInnerWindowRadius is the name of theme lookup for inner window corner radius.
+	//
+	// Since: 2.8
+	SizeNameInnerWindowRadius fyne.ThemeSizeName = "innerWindowRadius"
+
 	// SizeNameLineSpacing is the name of theme lookup for between text line spacing.
 	//
 	// Since: 2.3
@@ -42,6 +47,11 @@ const (
 	//
 	// Since: 2.0
 	SizeNameSeparatorThickness fyne.ThemeSizeName = "separator"
+
+	// SizeNameSplitThickness is the name of theme lookup for the thickness of a split divider.
+	//
+	// Since: 2.8
+	SizeNameSplitThickness fyne.ThemeSizeName = "split"
 
 	// SizeNameText is the name of theme lookup for text size.
 	//
@@ -102,6 +112,11 @@ const (
 	//
 	// Since: 2.6
 	SizeNameWindowTitleBarHeight fyne.ThemeSizeName = "windowTitleBarHeight"
+
+	// SizeNameButtonRadius is the name of theme lookup for button corner radius.
+	//
+	// Since: 2.8
+	SizeNameButtonRadius fyne.ThemeSizeName = "buttonRadius"
 )
 
 // CaptionTextSize returns the size for caption text.
@@ -229,9 +244,13 @@ func (t *builtinTheme) Size(s fyne.ThemeSizeName) float32 {
 		return 18
 	case SizeNameCaptionText:
 		return 11
+	case SizeNameInnerWindowRadius:
+		return 5
 	case SizeNameInputBorder:
 		return 1
 	case SizeNameInputRadius:
+		return 5
+	case SizeNameButtonRadius:
 		return 5
 	case SizeNameModalBlurRadius:
 		return 1.5

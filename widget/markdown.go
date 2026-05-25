@@ -8,6 +8,8 @@ import (
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
+	ast2 "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/renderer"
 
 	"fyne.io/fyne/v2"
@@ -55,7 +57,7 @@ func renderNode(source []byte, n ast.Node, blockquote bool, listDepth int) ([]Ri
 		return renderChildren(source, n, blockquote, listDepth)
 	case *ast.Paragraph:
 		children, err := renderChildren(source, n, blockquote, listDepth)
-		if !blockquote {
+		if !blockquote && listDepth == 0 {
 			linebreak := &TextSegment{Style: RichTextStyleParagraph}
 			children = append(children, linebreak)
 		}
@@ -114,14 +116,18 @@ func renderNode(source []byte, n ast.Node, blockquote bool, listDepth int) ([]Ri
 		}
 		return []RichTextSegment{&TextSegment{Style: RichTextStyleCodeBlock, Text: string(data)}}, nil
 	case *ast.Emphasis:
-		return renderEmphasis(source, n, blockquote, listDepth)
+		return renderEmphasis(source, n, blockquote, n.(*ast.Emphasis).Level, listDepth)
+	case *ast2.Strikethrough:
+		return renderEmphasis(source, n, blockquote, 3, listDepth)
 	case *ast.Text:
 		text := string(t.Value(source))
 		if text == "" {
 			// These empty text elements indicate single line breaks after non-text elements in goldmark.
 			return []RichTextSegment{&TextSegment{Style: RichTextStyleInline, Text: " "}}, nil
 		}
-		text = suffixSpaceIfAppropriate(text, n)
+		if n.(*ast.Text).SoftLineBreak() {
+			text = text + " "
+		}
 		if blockquote {
 			return []RichTextSegment{&TextSegment{Style: RichTextStyleBlockquote, Text: text}}, nil
 		}
@@ -132,14 +138,6 @@ func renderNode(source []byte, n ast.Node, blockquote bool, listDepth int) ([]Ri
 		return parseMarkdownImage(t), nil
 	}
 	return nil, nil
-}
-
-func suffixSpaceIfAppropriate(text string, n ast.Node) string {
-	next := n.NextSibling()
-	if next != nil && next.Type() == ast.TypeInline && !strings.HasSuffix(text, " ") {
-		return text + " "
-	}
-	return text
 }
 
 func renderChildren(source []byte, n ast.Node, blockquote bool, listDepth int) ([]RichTextSegment, error) {
@@ -155,6 +153,47 @@ func renderChildren(source []byte, n ast.Node, blockquote bool, listDepth int) (
 	return children, nil
 }
 
+func renderEmphasis(source []byte, n ast.Node, blockquote bool, strength, listDepth int) ([]RichTextSegment, error) {
+	style := RichTextStyleInline
+	switch strength {
+	case 1:
+		style = RichTextStyleEmphasis
+		if _, ok := n.Parent().(*ast2.Strikethrough); ok {
+			style.TextStyle.Strikethrough = true
+		}
+	case 2:
+		style = RichTextStyleStrong
+		if _, ok := n.Parent().(*ast2.Strikethrough); ok {
+			style.TextStyle.Strikethrough = true
+		}
+	case 3:
+		style = RichTextStyleInline
+		style.TextStyle.Strikethrough = true
+		if emp, ok := n.Parent().(*ast.Emphasis); ok {
+			if emp.Level == 1 {
+				style.TextStyle.Italic = true
+			} else if emp.Level == 2 {
+				style.TextStyle.Bold = true
+			}
+		}
+	}
+
+	children, err := renderChildren(source, n, blockquote, listDepth)
+	for _, child := range children {
+		switch t := child.(type) {
+		case *TextSegment:
+			t.Style.TextStyle.Bold = t.Style.TextStyle.Bold || style.TextStyle.Bold
+			t.Style.TextStyle.Italic = t.Style.TextStyle.Italic || style.TextStyle.Italic
+			t.Style.TextStyle.Strikethrough = t.Style.TextStyle.Strikethrough || style.TextStyle.Strikethrough
+		case *HyperlinkSegment:
+			t.TextStyle.Bold = t.TextStyle.Bold || style.TextStyle.Bold
+			t.TextStyle.Italic = t.TextStyle.Italic || style.TextStyle.Italic
+			t.TextStyle.Strikethrough = t.TextStyle.Strikethrough || style.TextStyle.Strikethrough
+		}
+	}
+	return children, err
+}
+
 func renderHeading(source []byte, n ast.Node, blockquote bool, listDepth int) ([]RichTextSegment, error) {
 	var style RichTextStyle
 	switch n.(*ast.Heading).Level {
@@ -167,25 +206,23 @@ func renderHeading(source []byte, n ast.Node, blockquote bool, listDepth int) ([
 	}
 
 	children := make([]RichTextSegment, 0, n.ChildCount())
-	lastIsText := false
 	for childCount, child := n.ChildCount(), n.FirstChild(); childCount > 0; childCount-- {
 		switch t := child.(type) {
 		case *ast.Text:
 			text := string(t.Value(source))
-			if lastIsText {
-				children[len(children)-1].(*TextSegment).Text += decodeText(text)
-				lastIsText = true
-				continue
-			}
 			children = append(children, &TextSegment{Style: style, Text: decodeText(text)})
-			lastIsText = true
 		default:
 			segs, err := renderNode(source, child, blockquote, listDepth)
 			if err != nil {
 				return children, err
 			}
+			for _, seg := range segs {
+				if t, ok := seg.(*TextSegment); ok { // apply heading to other text
+					t.Style.SizeName = style.SizeName
+					t.Style.TextStyle.Bold = true
+				}
+			}
 			children = append(children, segs...)
-			lastIsText = false
 		}
 		child = child.NextSibling()
 	}
@@ -205,23 +242,6 @@ func renderHeading(source []byte, n ast.Node, blockquote bool, listDepth int) ([
 	return children, nil
 }
 
-func renderEmphasis(source []byte, n ast.Node, blockquote bool, listDepth int) ([]RichTextSegment, error) {
-	style := RichTextStyleEmphasis
-	if n.(*ast.Emphasis).Level == 2 {
-		style = RichTextStyleStrong
-	}
-	children, err := renderChildren(source, n, blockquote, listDepth)
-	for _, child := range children {
-		switch t := child.(type) {
-		case *TextSegment:
-			t.Style = style
-		case *HyperlinkSegment:
-			t.TextStyle = style.TextStyle
-		}
-	}
-	return children, err
-}
-
 func forceIntoText(source []byte, n ast.Node) string {
 	text := strings.Builder{}
 	ast.Walk(n, func(n2 ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -239,7 +259,7 @@ func forceIntoText(source []byte, n ast.Node) string {
 
 func parseMarkdown(content string) []RichTextSegment {
 	r := markdownRenderer{}
-	md := goldmark.New(goldmark.WithRenderer(&r))
+	md := goldmark.New(goldmark.WithRenderer(&r), goldmark.WithExtensions(extension.Strikethrough))
 	err := md.Convert([]byte(content), nil)
 	if err != nil {
 		fyne.LogError("Failed to parse markdown", err)

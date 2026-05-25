@@ -6,6 +6,8 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/internal/async"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/test"
+	"fyne.io/fyne/v2/widget"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,6 +39,7 @@ func TestDeduplicatedObjectQueue(t *testing.T) {
 
 func TestOverlayStack(t *testing.T) {
 	stack := overlayStack{}
+	stack.Canvas = test.NewTempWindow(t, widget.NewLabel("Empty")).Canvas()
 
 	obj1 := &fyne.Container{Layout: layout.NewCenterLayout()}
 	stack.Add(obj1)

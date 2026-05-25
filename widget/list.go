@@ -100,7 +100,8 @@ func NewListWithData(data binding.DataList, createItem func() fyne.CanvasObject,
 				return
 			}
 			updateItem(item, o)
-		})
+		},
+	)
 
 	data.AddListener(binding.NewDataListener(l.Refresh))
 	return l
@@ -221,6 +222,31 @@ func (l *List) Resize(s fyne.Size) {
 
 	l.offsetUpdated(l.scroller.Offset)
 	l.scroller.Content.(*fyne.Container).Layout.(*listLayout).updateList(true)
+}
+
+// Highlight scrolls to the item represented by id and highlights it
+//
+// Since: 2.8
+func (l *List) Highlight(id ListItemID) {
+	if l.Length() == 0 {
+		return
+	}
+
+	newID := id
+	if id < 0 {
+		newID = 0
+	}
+
+	if id > l.Length() {
+		newID = l.Length() - 1
+	}
+
+	l.scrollTo(newID)
+	l.currentHighlight = newID
+	if l.OnHighlighted != nil {
+		l.OnHighlighted(newID)
+	}
+	l.Refresh()
 }
 
 // Select add the item identified by the given ID to the selection.

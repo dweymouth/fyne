@@ -30,7 +30,7 @@ func TestShowCustom_ApplyTheme(t *testing.T) {
 
 	test.ApplyTheme(t, test.NewTheme())
 	w.Resize(d.MinSize().Add(fyne.NewSize(shadowPad, shadowPad)))
-	d.Resize(d.MinSize()) // TODO remove once #707 is resolved
+	d.Resize(d.MinSize())
 	test.AssertRendersToImage(t, "dialog-custom-ugly.png", w.Canvas())
 }
 
@@ -56,6 +56,7 @@ func TestCustom_ApplyThemeOnShow(t *testing.T) {
 	label := widget.NewLabel("Content")
 	label.Alignment = fyne.TextAlignCenter
 	d := NewCustom("Title", "OK", label, w)
+	oldMin := d.MinSize()
 
 	test.ApplyTheme(t, test.Theme())
 	d.Show()
@@ -64,11 +65,13 @@ func TestCustom_ApplyThemeOnShow(t *testing.T) {
 
 	test.ApplyTheme(t, test.NewTheme())
 	d.Show()
+	d.Resize(d.MinSize())
 	test.AssertRendersToImage(t, "dialog-onshow-theme-changed.png", w.Canvas())
 	d.Hide()
 
 	test.ApplyTheme(t, test.Theme())
 	d.Show()
+	d.Resize(oldMin)
 	test.AssertRendersToImage(t, "dialog-onshow-theme-default.png", w.Canvas())
 	d.Hide()
 }
@@ -84,13 +87,13 @@ func TestCustom_ResizeOnShow(t *testing.T) {
 	d := NewCustom("Title", "OK", label, w).dialog
 
 	d.Show()
-	assert.Equal(t, size, d.win.Size())
+	assert.Equal(t, size, w.Canvas().Overlays().Top().Size())
 	d.Hide()
 
 	size = fyne.NewSize(500, 500)
 	w.Resize(size)
 	d.Show()
-	assert.Equal(t, size, d.win.Size())
+	assert.Equal(t, size, w.Canvas().Overlays().Top().Size())
 	d.Hide()
 }
 
@@ -162,4 +165,22 @@ func TestCustom_SetIcon(t *testing.T) {
 	d.Show()
 
 	test.AssertRendersToImage(t, "dialog-custom-seticon-nil.png", w.Canvas())
+}
+
+func TestCustom_ContentLayout(t *testing.T) {
+	test.NewTempApp(t)
+	w := test.NewTempWindow(t, canvas.NewRectangle(color.Transparent))
+	w.Resize(fyne.NewSize(200, 300))
+
+	label := widget.NewLabel("iiiiiiiiiimmmmmmmmmm")
+	label.Wrapping = fyne.TextWrapWord
+	d := NewCustom("Title", "OK", label, w)
+	d.Show()
+
+	c := d.win.Content.(*fyne.Container)
+	c.Layout.Layout(c.Objects, c.MinSize())
+	initialSize := d.content.Size()
+
+	c.Layout.Layout(c.Objects, c.MinSize())
+	assert.Equal(t, d.content.Size(), initialSize)
 }

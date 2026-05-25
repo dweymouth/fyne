@@ -6,7 +6,10 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-var _ fyne.Widget = (*Label)(nil)
+var (
+	_ fyne.Widget     = (*Label)(nil)
+	_ fyne.Accessible = (*Label)(nil)
+)
 
 // Label widget is a label component with appropriate padding and layout.
 type Label struct {
@@ -66,6 +69,20 @@ func NewLabelWithStyle(text string, alignment fyne.TextAlign, style fyne.TextSty
 
 	l.ExtendBaseWidget(l)
 	return l
+}
+
+// AccessibilityLabel for a label is just the text for that label.
+//
+// Since: 2.8
+func (l *Label) AccessibilityLabel() string {
+	return l.Text
+}
+
+// AccessibilityRole for a label is fyne.AccessibleRoleText.
+//
+// Since: 2.8
+func (l *Label) AccessibilityRole() fyne.AccessibleRole {
+	return fyne.AccessibleRoleText
 }
 
 // Bind connects the specified data source to this Label.

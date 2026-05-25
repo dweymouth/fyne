@@ -3,7 +3,7 @@
 		<rectangle size="450x800"/>
 	</content>
 	<overlay>
-		<widget pos="2,3" size="446x795" type="*widget.OverlayContainer">
+		<widget size="450x800" type="*widget.OverlayContainer">
 			<widget pos="10,10" size="66x162" type="*widget.Menu">
 				<widget size="66x162" type="*widget.Shadow">
 					<radialGradient centerOffset="0.5,0.5" pos="-3,-2" size="4x4" startColor="shadow"/>
@@ -74,9 +74,9 @@
 									<text color="rgba(255,255,255,50)" pos="183,8" size="21x19">Del</text>
 								</widget>
 								<widget pos="0,117" size="212x35" type="*widget.menuItem">
-									<text pos="8,8" size="139x19">d</text>
-									<text color="rgba(255,255,255,50)" pos="155,8" size="37x19">Shift+</text>
-									<text color="rgba(255,255,255,50)" pos="193,8" size="11x19">↓</text>
+									<text pos="8,8" size="137x19">d</text>
+									<text color="rgba(255,255,255,50)" pos="153,8" size="37x19">Shift+</text>
+									<text color="rgba(255,255,255,50)" pos="191,8" size="13x19">↓</text>
 								</widget>
 								<widget pos="0,156" size="212x35" type="*widget.menuItem">
 									<text pos="8,8" size="106x19">e</text>
@@ -99,9 +99,9 @@
 									<text color="rgba(255,255,255,50)" pos="164,8" size="39x19">Home</text>
 								</widget>
 								<widget pos="0,312" size="212x35" type="*widget.menuItem">
-									<text pos="8,8" size="113x19">i</text>
-									<text color="rgba(255,255,255,50)" pos="129,8" size="63x19">Alt+Shift+</text>
-									<text color="rgba(255,255,255,50)" pos="193,8" size="11x19">←</text>
+									<text pos="8,8" size="112x19">i</text>
+									<text color="rgba(255,255,255,50)" pos="128,8" size="63x19">Alt+Shift+</text>
+									<text color="rgba(255,255,255,50)" pos="191,8" size="13x19">←</text>
 								</widget>
 								<widget pos="0,351" size="212x35" type="*widget.menuItem">
 									<text pos="8,8" size="68x19">j</text>
@@ -119,9 +119,9 @@
 									<text color="rgba(255,255,255,50)" pos="160,8" size="44x19">Return</text>
 								</widget>
 								<widget pos="0,468" size="212x35" type="*widget.menuItem">
-									<text pos="8,8" size="61x19">m</text>
-									<text color="rgba(255,255,255,50)" pos="77,8" size="115x19">Ctrl+Shift+Super+</text>
-									<text color="rgba(255,255,255,50)" pos="193,8" size="11x19">→</text>
+									<text pos="8,8" size="59x19">m</text>
+									<text color="rgba(255,255,255,50)" pos="75,8" size="115x19">Ctrl+Shift+Super+</text>
+									<text color="rgba(255,255,255,50)" pos="191,8" size="13x19">→</text>
 								</widget>
 								<widget pos="0,508" size="212x35" type="*widget.menuItem">
 									<text pos="8,8" size="8x19">n</text>
@@ -134,9 +134,9 @@
 									<text color="rgba(255,255,255,50)" pos="181,8" size="23x19">Tab</text>
 								</widget>
 								<widget pos="0,586" size="212x35" type="*widget.menuItem">
-									<text pos="8,8" size="145x19">p</text>
-									<text color="rgba(255,255,255,50)" pos="161,8" size="31x19">Ctrl+</text>
-									<text color="rgba(255,255,255,50)" pos="193,8" size="11x19">↑</text>
+									<text pos="8,8" size="144x19">p</text>
+									<text color="rgba(255,255,255,50)" pos="160,8" size="31x19">Ctrl+</text>
+									<text color="rgba(255,255,255,50)" pos="191,8" size="13x19">↑</text>
 								</widget>
 								<widget pos="0,625" size="212x35" type="*widget.menuItem">
 									<text pos="8,8" size="173x19">q</text>

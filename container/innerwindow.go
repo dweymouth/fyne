@@ -52,7 +52,7 @@ type InnerWindow struct {
 	// Since: 2.8
 	Content *fyne.Container
 
-	maximized bool
+	maximized, inactive bool
 }
 
 // NewInnerWindow creates a new window border around the given `content`, displaying the `title` along the top.
@@ -121,7 +121,8 @@ func (w *InnerWindow) CreateRenderer() fyne.WidgetRenderer {
 		buttons = NewCenter(NewHBox(min, max, close))
 	}
 
-	bg := canvas.NewRectangle(th.Color(theme.ColorNameOverlayBackground, v))
+	bg := canvas.NewRectangle(th.Color(theme.ColorNameInnerWindowBorder, v))
+	bg.CornerRadius = th.Size(theme.SizeNameInnerWindowRadius)
 	contentBG := canvas.NewRectangle(th.Color(theme.ColorNameBackground, v))
 	corner := newDraggableCorner(w)
 	bar := New(&titleBarLayout{buttons: buttons, icon: borderIcon, title: barMid, win: w},
@@ -138,6 +139,15 @@ func (w *InnerWindow) CreateRenderer() fyne.WidgetRenderer {
 	}
 	r.Layout(w.Size())
 	return r
+}
+
+// SetActive tells the window whether it is the currently active (top) window.
+// A new window is assumed to be active.
+//
+// Since: 2.8
+func (w *InnerWindow) SetActive(active bool) {
+	w.inactive = !active
+	w.Refresh()
 }
 
 func (w *InnerWindow) SetContent(obj fyne.CanvasObject) {
@@ -230,7 +240,15 @@ func (i *innerWindowRenderer) MinSize() fyne.Size {
 func (i *innerWindowRenderer) Refresh() {
 	th := i.win.Theme()
 	v := fyne.CurrentApp().Settings().ThemeVariant()
-	i.bg.FillColor = th.Color(theme.ColorNameOverlayBackground, v)
+	i.bg.FillColor = th.Color(theme.ColorNameInnerWindowBorder, v)
+	if i.win.inactive {
+		col := th.Color(theme.ColorNameInnerWindowBorderInactive, v)
+		r, g, b, a := col.RGBA()
+		if r != 0 || g != 0 || b != 0 || a != 0 {
+			i.bg.FillColor = col
+		}
+	}
+	i.bg.CornerRadius = th.Size(theme.SizeNameInnerWindowRadius)
 	i.bg.Refresh()
 	i.contentBG.FillColor = th.Color(theme.ColorNameBackground, v)
 	i.contentBG.Refresh()

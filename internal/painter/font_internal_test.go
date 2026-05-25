@@ -2,8 +2,6 @@
 
 package painter
 
-import "github.com/go-text/typesetting/fontscan"
-
 //
 //func Test_compositeFace_Close(t *testing.T) {
 //	chosenFont := &truetype.Font{}
@@ -338,7 +336,3 @@ import "github.com/go-text/typesetting/fontscan"
 //	f.IndexInvoked = true
 //	return f.IndexFunc(r)
 //}
-
-func loadSystemFonts(fm *fontscan.FontMap) error {
-	return nil
-}

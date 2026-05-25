@@ -97,24 +97,29 @@ func TestConfirmDialog_Resize(t *testing.T) {
 	assert.Equal(t, expectedWidth, theDialog.win.Content.Size().Width+theme.Padding()*2)
 	expectedHeight = 280
 	assert.Equal(t, expectedHeight, theDialog.win.Content.Size().Height+theme.Padding()*2)
+	d.Hide()
 
 	// Test resize - greater than max size scenario
 	size = fyne.NewSize(800, 600)
 	theDialog.Resize(size)
+	d.Show()
 	expectedWidth = 600                                        // since win width only 600
 	assert.Equal(t, expectedWidth, theDialog.win.Size().Width) // max, also work
 	assert.Equal(t, expectedWidth, theDialog.win.Content.Size().Width+theme.Padding()*2)
 	expectedHeight = 400                                         // since win height only 400
 	assert.Equal(t, expectedHeight, theDialog.win.Size().Height) // max, also work
 	assert.Equal(t, expectedHeight, theDialog.win.Content.Size().Height+theme.Padding()*2)
+	d.Hide()
 
-	// Test again - extreme small size
+	// Test again - tiny size
 	size = fyne.NewSize(1, 1)
 	theDialog.Resize(size)
+	d.Show()
 	expectedWidth = theDialog.win.Content.MinSize().Width
 	assert.Equal(t, expectedWidth, theDialog.win.Content.Size().Width)
 	expectedHeight = theDialog.win.Content.MinSize().Height
 	assert.Equal(t, expectedHeight, theDialog.win.Content.Size().Height)
+	d.Hide()
 }
 
 func TestConfirm_Importance(t *testing.T) {

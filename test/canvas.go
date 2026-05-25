@@ -128,7 +128,7 @@ func (c *canvas) Focused() fyne.Focusable {
 }
 
 func (c *canvas) InteractiveArea() (fyne.Position, fyne.Size) {
-	return fyne.NewPos(2, 3), c.Size().SubtractWidthHeight(4, 5)
+	return fyne.NewPos(0, 0), c.Size()
 }
 
 func (c *canvas) OnTypedKey() func(*fyne.KeyEvent) {
@@ -187,18 +187,10 @@ func (c *canvas) doResize(size fyne.Size) {
 	}
 
 	// Ensure testcanvas mimics real canvas.Resize behavior
+	fullPos, fullSize := c.InteractiveArea()
 	for _, overlay := range overlays.List() {
-		type popupWidget interface {
-			fyne.CanvasObject
-			ShowAtPosition(fyne.Position)
-		}
-		if p, ok := overlay.(popupWidget); ok {
-			// TODO: remove this when #707 is being addressed.
-			// “Notifies” the PopUp of the canvas size change.
-			p.Refresh()
-		} else {
-			overlay.Resize(size)
-		}
+		overlay.Move(fullPos)
+		overlay.Resize(fullSize)
 	}
 
 	if padded {

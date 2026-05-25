@@ -3,6 +3,7 @@ package dialog
 import (
 	"testing"
 
+	intWidget "fyne.io/fyne/v2/internal/widget"
 	"fyne.io/fyne/v2/lang"
 	"github.com/stretchr/testify/assert"
 
@@ -28,7 +29,7 @@ func TestShowFolderOpen(t *testing.T) {
 	d.SetLocation(dir)
 	d.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 

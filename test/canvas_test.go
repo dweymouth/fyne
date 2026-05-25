@@ -29,10 +29,11 @@ func Test_canvas_Capture(t *testing.T) {
 
 func Test_canvas_InteractiveArea(t *testing.T) {
 	c := NewCanvas()
+	// TODO a custom interactive area that does not break other tests (overlays restrict to the space)
 	c.Resize(fyne.NewSize(600, 400))
 	pos, size := c.InteractiveArea()
-	assert.Equal(t, fyne.NewPos(2, 3), pos)
-	assert.Equal(t, fyne.NewSize(596, 395), size)
+	assert.Equal(t, fyne.NewPos(0, 0), pos)
+	assert.Equal(t, fyne.NewSize(600, 400), size)
 }
 
 func Test_canvas_PixelCoordinateAtPosition(t *testing.T) {

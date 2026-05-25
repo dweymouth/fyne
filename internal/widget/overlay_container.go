@@ -14,7 +14,7 @@ var (
 // OverlayContainer is a transparent widget containing one fyne.CanvasObject and meant to be used as overlay.
 type OverlayContainer struct {
 	Base
-	Content fyne.CanvasObject
+	Content, Background fyne.CanvasObject
 
 	canvas    fyne.Canvas
 	onDismiss func()
@@ -30,7 +30,11 @@ func NewOverlayContainer(c fyne.CanvasObject, canvas fyne.Canvas, onDismiss func
 
 // CreateRenderer returns a new renderer for the overlay container.
 func (o *OverlayContainer) CreateRenderer() fyne.WidgetRenderer {
-	return &overlayRenderer{BaseRenderer{[]fyne.CanvasObject{o.Content}}, o}
+	objs := []fyne.CanvasObject{o.Content}
+	if o.Background != nil {
+		objs = []fyne.CanvasObject{o.Background, o.Content}
+	}
+	return &overlayRenderer{BaseRenderer{objs}, o}
 }
 
 // Hide hides the overlay container.
@@ -87,7 +91,21 @@ type overlayRenderer struct {
 
 var _ fyne.WidgetRenderer = (*overlayRenderer)(nil)
 
-func (r *overlayRenderer) Layout(fyne.Size) {
+func (r *overlayRenderer) Layout(s fyne.Size) {
+	if s.IsZero() {
+		return
+	}
+
+	size := r.o.Content.Size()
+	if size.IsZero() {
+		size = r.o.Content.MinSize()
+	}
+	size = size.Min(s)
+	r.o.Content.Resize(size)
+
+	if r.o.Background != nil {
+		r.o.Background.Resize(s)
+	}
 }
 
 func (r *overlayRenderer) MinSize() fyne.Size {

@@ -110,3 +110,16 @@ func TestInnerWindow_SetTitle(t *testing.T) {
 	w.SetTitle("Title2")
 	assert.Equal(t, "Title2", title.Text)
 }
+
+func TestInnerWindow_Theme(t *testing.T) {
+	w := NewInnerWindow("Test", widget.NewLabel("Content"))
+	r := cache.Renderer(w).(*innerWindowRenderer)
+
+	assert.Equal(t, w.Theme().Size(theme.SizeNameInnerWindowRadius), r.bg.CornerRadius)
+	assert.Equal(t, w.Theme().Color(theme.ColorNameInnerWindowBorder, fyne.CurrentApp().Settings().ThemeVariant()), r.bg.FillColor)
+
+	w.SetActive(false)
+	assert.Equal(t, w.Theme().Color(theme.ColorNameInnerWindowBorderInactive, fyne.CurrentApp().Settings().ThemeVariant()), r.bg.FillColor)
+	w.SetActive(true)
+	assert.Equal(t, w.Theme().Color(theme.ColorNameInnerWindowBorder, fyne.CurrentApp().Settings().ThemeVariant()), r.bg.FillColor)
+}

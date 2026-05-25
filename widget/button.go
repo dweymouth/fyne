@@ -45,7 +45,10 @@ const (
 	ButtonIconTrailingText
 )
 
-var _ fyne.Focusable = (*Button)(nil)
+var (
+	_ fyne.Focusable  = (*Button)(nil)
+	_ fyne.Accessible = (*Button)(nil)
+)
 
 // Button widget has a text label and triggers an event func when clicked
 type Button struct {
@@ -89,6 +92,24 @@ func NewButtonWithIcon(label string, icon fyne.Resource, tapped func()) *Button 
 	return button
 }
 
+// AccessibilityLabel for a button is the text, if there is some, otherwise the name of the icon.
+//
+// Since: 2.8
+func (b *Button) AccessibilityLabel() string {
+	if b.Text != "" {
+		return b.Text
+	}
+
+	return b.Icon.Name()
+}
+
+// AccessibilityRole for a button is fyne.AccessibleRoleButton.
+//
+// Since: 2.8
+func (b *Button) AccessibilityRole() fyne.AccessibleRole {
+	return fyne.AccessibleRoleButton
+}
+
 // CreateRenderer is a private method to Fyne which links this widget to its renderer
 func (b *Button) CreateRenderer() fyne.WidgetRenderer {
 	b.ExtendBaseWidget(b)
@@ -101,7 +122,7 @@ func (b *Button) CreateRenderer() fyne.WidgetRenderer {
 	text.inset = fyne.NewSquareSize(th.Size(theme.SizeNameInnerPadding))
 
 	background := canvas.NewRectangle(th.Color(theme.ColorNameButton, v))
-	background.CornerRadius = th.Size(theme.SizeNameInputRadius)
+	background.CornerRadius = th.Size(theme.SizeNameButtonRadius)
 	tapBG := canvas.NewRectangle(color.Transparent)
 	b.tapAnim = newButtonTapAnimation(tapBG, b, th)
 	b.tapAnim.Curve = fyne.AnimationEaseOut
@@ -327,7 +348,7 @@ func (r *buttonRenderer) applyTheme() {
 			bgColor = blendColor(bgColor, th.Color(bgBlendName, v))
 		}
 		bg.FillColor = bgColor
-		bg.CornerRadius = th.Size(theme.SizeNameInputRadius)
+		bg.CornerRadius = th.Size(theme.SizeNameButtonRadius)
 		bg.Refresh()
 	}
 

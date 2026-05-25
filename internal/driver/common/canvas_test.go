@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"testing"
 
+	"fyne.io/fyne/v2/widget"
 	"github.com/stretchr/testify/assert"
 
 	"fyne.io/fyne/v2"
@@ -360,7 +361,7 @@ func TestCanvas_walkTree(t *testing.T) {
 }
 
 func TestCanvas_OverlayStack(t *testing.T) {
-	o := &overlayStack{}
+	o := test.NewTempWindow(t, widget.NewLabel("Empty")).Canvas().Overlays()
 	a := canvas.NewRectangle(color.Black)
 	b := canvas.NewCircle(color.Black)
 	c := canvas.NewRectangle(color.White)

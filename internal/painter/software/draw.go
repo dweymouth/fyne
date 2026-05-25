@@ -316,7 +316,7 @@ func drawOblongStroke(c fyne.Canvas, obj fyne.CanvasObject, width, height float3
 	draw.Draw(base, bounds, raw, image.Point{offX, offY}, draw.Over)
 }
 
-func drawPolygon(c fyne.Canvas, polygon *canvas.Polygon, pos fyne.Position, base *image.NRGBA, clip image.Rectangle) {
+func drawPolygon(c fyne.Canvas, polygon *canvas.RegularPolygon, pos fyne.Position, base *image.NRGBA, clip image.Rectangle) {
 	pad := painter.VectorPad(polygon)
 	scaledWidth := scale.ToScreenCoordinate(c, polygon.Size().Width+pad*2)
 	scaledHeight := scale.ToScreenCoordinate(c, polygon.Size().Height+pad*2)
@@ -324,6 +324,28 @@ func drawPolygon(c fyne.Canvas, polygon *canvas.Polygon, pos fyne.Position, base
 	bounds := clip.Intersect(image.Rect(scaledX, scaledY, scaledX+scaledWidth, scaledY+scaledHeight))
 
 	raw := painter.DrawPolygon(polygon, pad, func(in float32) float32 {
+		return float32(math.Round(float64(in) * float64(c.Scale())))
+	})
+
+	// the clip intersect above cannot be negative, so we may need to compensate
+	offX, offY := 0, 0
+	if scaledX < 0 {
+		offX = -scaledX
+	}
+	if scaledY < 0 {
+		offY = -scaledY
+	}
+	draw.Draw(base, bounds, raw, image.Point{offX, offY}, draw.Over)
+}
+
+func drawArbitraryPolygon(c fyne.Canvas, polygon *canvas.ArbitraryPolygon, pos fyne.Position, base *image.NRGBA, clip image.Rectangle) {
+	pad := painter.VectorPad(polygon)
+	scaledWidth := scale.ToScreenCoordinate(c, polygon.Size().Width+pad*2)
+	scaledHeight := scale.ToScreenCoordinate(c, polygon.Size().Height+pad*2)
+	scaledX, scaledY := scale.ToScreenCoordinate(c, pos.X-pad), scale.ToScreenCoordinate(c, pos.Y-pad)
+	bounds := clip.Intersect(image.Rect(scaledX, scaledY, scaledX+scaledWidth, scaledY+scaledHeight))
+
+	raw := painter.DrawArbitraryPolygon(polygon, pad, func(in float32) float32 {
 		return float32(math.Round(float64(in) * float64(c.Scale())))
 	})
 

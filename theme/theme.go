@@ -206,6 +206,10 @@ func darkPaletteColorNamed(name fyne.ThemeColorName) color.Color {
 		return colorDarkHover
 	case ColorNameHeaderBackground:
 		return colorDarkHeaderBackground
+	case ColorNameInnerWindowBorder:
+		return colorDarkInnerWindowBorder
+	case ColorNameInnerWindowBorderInactive:
+		return colorDarkInnerWindowBorderInactive
 	case ColorNameInputBackground:
 		return colorDarkInputBackground
 	case ColorNameInputBorder:
@@ -282,6 +286,10 @@ func lightPaletteColorNamed(name fyne.ThemeColorName) color.Color {
 		return colorLightHover
 	case ColorNameHeaderBackground:
 		return colorLightHeaderBackground
+	case ColorNameInnerWindowBorder:
+		return colorLightInnerWindowBorder
+	case ColorNameInnerWindowBorderInactive:
+		return colorLightInnerWindowBorderInactive
 	case ColorNameInputBackground:
 		return colorLightInputBackground
 	case ColorNameInputBorder:

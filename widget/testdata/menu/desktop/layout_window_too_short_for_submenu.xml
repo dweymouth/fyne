@@ -3,19 +3,19 @@
 		<rectangle size="500x150"/>
 	</content>
 	<overlay>
-		<widget pos="2,3" size="496x145" type="*widget.OverlayContainer">
-			<widget pos="10,10" size="66x135" type="*widget.Menu">
-				<widget size="66x135" type="*widget.Shadow">
+		<widget size="500x150" type="*widget.OverlayContainer">
+			<widget pos="10,10" size="66x140" type="*widget.Menu">
+				<widget size="66x140" type="*widget.Shadow">
 					<radialGradient centerOffset="0.5,0.5" pos="-3,-2" size="4x4" startColor="shadow"/>
 					<linearGradient endColor="shadow" pos="0,-2" size="64x4"/>
 					<radialGradient centerOffset="-0.5,0.5" pos="65,-2" size="4x4" startColor="shadow"/>
-					<linearGradient angle="270" pos="65,1" size="4x133" startColor="shadow"/>
-					<radialGradient centerOffset="-0.5,-0.5" pos="65,135" size="4x4" startColor="shadow"/>
-					<linearGradient pos="0,135" size="64x4" startColor="shadow"/>
-					<radialGradient centerOffset="0.5,-0.5" pos="-3,135" size="4x4" startColor="shadow"/>
-					<linearGradient angle="270" endColor="shadow" pos="-3,1" size="4x133"/>
+					<linearGradient angle="270" pos="65,1" size="4x138" startColor="shadow"/>
+					<radialGradient centerOffset="-0.5,-0.5" pos="65,140" size="4x4" startColor="shadow"/>
+					<linearGradient pos="0,140" size="64x4" startColor="shadow"/>
+					<radialGradient centerOffset="0.5,-0.5" pos="-3,140" size="4x4" startColor="shadow"/>
+					<linearGradient angle="270" endColor="shadow" pos="-3,1" size="4x138"/>
 				</widget>
-				<widget size="66x135" type="*widget.Scroll">
+				<widget size="66x140" type="*widget.Scroll">
 					<widget size="66x162" type="*widget.menuBox">
 						<rectangle fillColor="menuBackground" size="66x162"/>
 						<container size="66x162">
@@ -42,12 +42,12 @@
 							</widget>
 						</container>
 					</widget>
-					<widget pos="0,135" size="66x0" type="*widget.Shadow">
+					<widget pos="0,140" size="66x0" type="*widget.Shadow">
 						<linearGradient endColor="shadow" pos="0,-8" size="66x8"/>
 					</widget>
-					<widget pos="60,0" size="6x135" type="*widget.scrollBarArea">
-						<widget pos="3,0" size="3x112" type="*widget.scrollBar">
-							<rectangle fillColor="scrollbar" radius="3" size="3x112"/>
+					<widget pos="60,0" size="6x140" type="*widget.scrollBarArea">
+						<widget pos="3,0" size="3x120" type="*widget.scrollBar">
+							<rectangle fillColor="scrollbar" radius="3" size="3x120"/>
 						</widget>
 					</widget>
 				</widget>

@@ -423,7 +423,8 @@ func TestText_DeleteFromTo_Segments(t *testing.T) {
 func TestText_Multiline(t *testing.T) {
 	text := NewRichText(
 		&TextSegment{Text: "line1\nli", Style: RichTextStyleStrong},
-		&TextSegment{Text: "ne2\nline3", Style: RichTextStyleInline})
+		&TextSegment{Text: "ne2\nline3", Style: RichTextStyleInline},
+	)
 
 	w := test.NewTempWindow(t, text)
 	w.Resize(fyne.NewSize(64, 90))
@@ -1256,13 +1257,14 @@ func TestText_lineBounds_small_firstWidth(t *testing.T) {
 	assert.Equal(t, 6, got[1].end)
 }
 
-func TestText_ratioSearch(t *testing.T) {
+func TestText_howManyRunesFit(t *testing.T) {
 	maxWidth := float32(46)
 	textSize := float32(10)
 	textStyle := fyne.TextStyle{}
-	measurer := func(text []rune) float32 {
-		return fyne.MeasureText(string(text), textSize, textStyle).Width
+	measurer := func(text []rune) fyne.Size {
+		return fyne.MeasureText(string(text), textSize, textStyle)
 	}
+	charWidth := measurer([]rune("z")).Width
 	for name, tt := range map[string]struct {
 		text string
 		want int
@@ -1300,13 +1302,16 @@ func TestText_ratioSearch(t *testing.T) {
 			want: 0,
 		},
 	} {
-		checker := func(low int, high int) float32 {
-			return measurer([]rune(tt.text[low:high])) / maxWidth
-		}
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, tt.want, ratioSearch(checker, 0, len(tt.text), -1.0))
+			assert.Equal(t, tt.want, howManyRunesFit([]rune(tt.text), maxWidth, charWidth, measurer))
 		})
 	}
+	t.Run("Zero width", func(t *testing.T) {
+		assert.Equal(t, 0, howManyRunesFit([]rune("foo"), 0, charWidth, measurer))
+	})
+	t.Run("Negative width", func(t *testing.T) {
+		assert.Equal(t, 0, howManyRunesFit([]rune("foo"), -1, charWidth, measurer))
+	})
 }
 
 func TestText_findSpaceIndex(t *testing.T) {
@@ -1316,7 +1321,7 @@ func TestText_findSpaceIndex(t *testing.T) {
 	}{
 		"no_space_fallback": {
 			text: "iiiiiiiiiimmmmmmmmmm",
-			want: 19,
+			want: -1,
 		},
 		"single_space": {
 			text: "foobar foobar",

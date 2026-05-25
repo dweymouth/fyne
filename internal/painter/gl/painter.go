@@ -42,23 +42,24 @@ func NewPainter(c fyne.Canvas, ctx driver.WithContext) Painter {
 }
 
 type painter struct {
-	canvas                fyne.Canvas
-	ctx                   context
-	contextProvider       driver.WithContext
-	program               ProgramState
-	blurProgram           ProgramState
-	lineProgram           ProgramState
-	rectangleProgram      ProgramState
-	roundRectangleProgram ProgramState
-	polygonProgram        ProgramState
-	arcProgram            ProgramState
-	bezierCurveProgram    ProgramState
-	texScale              float32
-	pixScale              float32 // pre-calculate scale*texScale for each draw
-	blurSnapTex           Texture // cached texture for GPU-side blur snapshot
-	blurSnapTexValid      bool    // whether blurSnapTex has been allocated
-	blurSnapW, blurSnapH  int     // size of blurSnapTex in pixels
-	fbHeight              int     // current framebuffer height in pixels
+	canvas                  fyne.Canvas
+	ctx                     context
+	contextProvider         driver.WithContext
+	program                 ProgramState
+	blurProgram             ProgramState
+	lineProgram             ProgramState
+	rectangleProgram        ProgramState
+	roundRectangleProgram   ProgramState
+	polygonProgram          ProgramState
+	arcProgram              ProgramState
+	bezierCurveProgram      ProgramState
+	arbitraryPolygonProgram ProgramState
+	texScale                float32
+	pixScale                float32 // pre-calculate scale*texScale for each draw
+	blurSnapTex             Texture // cached texture for GPU-side blur snapshot
+	blurSnapTexValid        bool    // whether blurSnapTex has been allocated
+	blurSnapW, blurSnapH    int     // size of blurSnapTex in pixels
+	fbHeight                int     // current framebuffer height in pixels
 }
 
 type ProgramState struct {
@@ -69,12 +70,13 @@ type ProgramState struct {
 }
 
 type UniformState struct {
-	ref  Uniform
-	prev [4]float32
+	ref   Uniform
+	prev  [4]float32
+	prevv []float32
 }
 
 func (p *painter) SetUniform1f(pState ProgramState, name string, v float32) {
-	u := pState.uniforms[name]
+	u := p.getUniformLocation(pState, name)
 	if u.prev[0] == v {
 		return
 	}
@@ -82,8 +84,17 @@ func (p *painter) SetUniform1f(pState ProgramState, name string, v float32) {
 	p.ctx.Uniform1f(u.ref, v)
 }
 
+func (p *painter) SetUniform1fv(pState ProgramState, name string, v []float32) {
+	u := p.getUniformLocation(pState, name)
+	if float32SlicesEqual(u.prevv, v) {
+		return
+	}
+	u.prevv = append(u.prevv[:0], v...)
+	p.ctx.Uniform1fv(u.ref, v)
+}
+
 func (p *painter) SetUniform2f(pState ProgramState, name string, v0, v1 float32) {
-	u := pState.uniforms[name]
+	u := p.getUniformLocation(pState, name)
 	if u.prev[0] == v0 && u.prev[1] == v1 {
 		return
 	}
@@ -92,8 +103,17 @@ func (p *painter) SetUniform2f(pState ProgramState, name string, v0, v1 float32)
 	p.ctx.Uniform2f(u.ref, v0, v1)
 }
 
+func (p *painter) SetUniform2fv(pState ProgramState, name string, v []float32) {
+	u := p.getUniformLocation(pState, name)
+	if float32SlicesEqual(u.prevv, v) {
+		return
+	}
+	u.prevv = append(u.prevv[:0], v...)
+	p.ctx.Uniform2fv(u.ref, v)
+}
+
 func (p *painter) SetUniform4f(pState ProgramState, name string, v0, v1, v2, v3 float32) {
-	u := pState.uniforms[name]
+	u := p.getUniformLocation(pState, name)
 	if u.prev[0] == v0 && u.prev[1] == v1 && u.prev[2] == v2 && u.prev[3] == v3 {
 		return
 	}
@@ -105,7 +125,7 @@ func (p *painter) SetUniform4f(pState ProgramState, name string, v0, v1, v2, v3 
 }
 
 func (p *painter) UpdateVertexArray(pState ProgramState, name string, size, stride, offset int) {
-	a := pState.attributes[name]
+	a := p.enableAttribArray(pState, name)
 
 	p.ctx.VertexAttribPointerWithOffset(a, size, float, false, stride*floatSize, offset*floatSize)
 	p.logError()
@@ -222,6 +242,39 @@ func (p *painter) createProgram(shaderFilename string) Program {
 	return prog
 }
 
+func (p *painter) enableAttribArray(pState ProgramState, name string) Attribute {
+	a, ok := pState.attributes[name]
+	if !ok {
+		a = p.ctx.GetAttribLocation(pState.ref, name)
+		p.ctx.EnableVertexAttribArray(a)
+		pState.attributes[name] = a
+	}
+
+	return a
+}
+
+func (p *painter) getUniformLocation(pState ProgramState, name string) *UniformState {
+	u, ok := pState.uniforms[name]
+	if !ok {
+		u = &UniformState{ref: p.ctx.GetUniformLocation(pState.ref, name)}
+		pState.uniforms[name] = u
+	}
+
+	return u
+}
+
 func (p *painter) logError() {
 	logGLError(p.ctx.GetError)
+}
+
+func float32SlicesEqual(a, b []float32) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

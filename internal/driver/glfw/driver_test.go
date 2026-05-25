@@ -58,6 +58,7 @@ func Test_gLDriver_AbsolutePositionForObject(t *testing.T) {
 	runOnMain(func() {
 		size = ovlContent.Size()
 	})
+	// TODO modal content zero not minsize
 	assert.InDelta(t, 112, size.Width, 1)
 	assert.InDelta(t, 113, size.Height, 1)
 

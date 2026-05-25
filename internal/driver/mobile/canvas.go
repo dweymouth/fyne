@@ -14,7 +14,6 @@ import (
 	intdriver "fyne.io/fyne/v2/internal/driver"
 	"fyne.io/fyne/v2/internal/driver/common"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 )
 
 var _ fyne.Canvas = (*canvas)(nil)
@@ -204,14 +203,8 @@ func (c *canvas) sizeContent(size fyne.Size) {
 	}
 
 	for _, overlay := range c.Overlays().List() {
-		if p, ok := overlay.(*widget.PopUp); ok {
-			// TODO: remove this when #707 is being addressed.
-			// “Notifies” the PopUp of the canvas size change.
-			p.Refresh()
-		} else {
-			overlay.Resize(areaSize)
-			overlay.Move(areaPos)
-		}
+		overlay.Resize(areaSize)
+		overlay.Move(areaPos)
 	}
 
 	if c.padded {

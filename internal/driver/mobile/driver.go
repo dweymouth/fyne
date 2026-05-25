@@ -353,11 +353,7 @@ func (d *driver) handlePaint(e paint.Event, w *window) {
 
 		newSize := fyne.NewSize(float32(d.currentSize.WidthPx)/c.scale, float32(d.currentSize.HeightPx)/c.scale)
 
-		if c.EnsureMinSize() {
-			c.sizeContent(newSize) // force resize of content
-		} else { // if screen changed
-			w.Resize(newSize)
-		}
+		w.Resize(newSize)
 
 		d.paintWindow(w, newSize)
 		d.app.Publish()
@@ -381,6 +377,7 @@ func (d *driver) handlePaint(e paint.Event, w *window) {
 	if shouldClean {
 		cache.Clean()
 	}
+  w.updateAccessibility()
 	cache.IncrementFrameCounter()
 }
 

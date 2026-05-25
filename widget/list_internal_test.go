@@ -40,7 +40,8 @@ func TestNewListWithData(t *testing.T) {
 		data.Append(fmt.Sprintf("Test Item %d", i))
 	}
 
-	list := NewListWithData(data,
+	list := NewListWithData(
+		data,
 		func() fyne.CanvasObject {
 			return NewLabel("Template Object")
 		},
@@ -80,7 +81,8 @@ func TestList_MinSize(t *testing.T) {
 					r.Resize(tt.cellSize)
 					return r
 				},
-				func(ListItemID, fyne.CanvasObject) {}).MinSize())
+				func(ListItemID, fyne.CanvasObject) {},
+			).MinSize())
 		})
 	}
 }
@@ -105,7 +107,8 @@ func TestList_Resize(t *testing.T) {
 			return NewButton("", func() {})
 		},
 		func(ListItemID, fyne.CanvasObject) {
-		})
+		},
+	)
 	list.Resize(list.Size())
 }
 
@@ -118,7 +121,8 @@ func TestList_SetItemHeight(t *testing.T) {
 			return r
 		},
 		func(ListItemID, fyne.CanvasObject) {
-		})
+		},
+	)
 
 	lay := test.TempWidgetRenderer(t, list).(*listRenderer).layout
 	assert.Equal(t, fyne.NewSize(32, 32), list.MinSize())
@@ -144,7 +148,8 @@ func TestList_SetItemHeight_InUpdate(t *testing.T) {
 		},
 		func(id ListItemID, o fyne.CanvasObject) {
 			list.SetItemHeight(id, 32)
-		})
+		},
+	)
 
 	done := make(chan struct{})
 	go func() {
@@ -264,6 +269,44 @@ func TestList_ScrollOffset(t *testing.T) {
 	list.Resize(fyne.NewSize(100, 500))
 	list.ScrollToOffset(20)
 	assert.Equal(t, float32(0), list.GetScrollOffset()) // doesn't scroll
+}
+
+func TestList_Highlight(t *testing.T) {
+	list := createList(1000)
+
+	// override update item to keep track of greatest item rendered
+	oldUpdateFunc := list.UpdateItem
+	var greatest ListItemID = -1
+	list.UpdateItem = func(id ListItemID, item fyne.CanvasObject) {
+		if id > greatest {
+			greatest = id
+		}
+		oldUpdateFunc(id, item)
+	}
+
+	list.Highlight(650)
+	assert.GreaterOrEqual(t, greatest, 650)
+	assert.Equal(t, 650, list.currentHighlight)
+
+	list.Highlight(800)
+	assert.GreaterOrEqual(t, greatest, 800)
+	assert.Equal(t, 800, list.currentHighlight)
+
+	list.Highlight(999)
+	assert.Equal(t, greatest, 999)
+	assert.Equal(t, 999, list.currentHighlight)
+
+	list.Highlight(1001)
+	assert.Equal(t, greatest, 999)
+	assert.Equal(t, 999, list.currentHighlight)
+
+	list.Highlight(0)
+	assert.GreaterOrEqual(t, greatest, 0)
+	assert.Equal(t, 0, list.currentHighlight)
+
+	list.Highlight(-1)
+	assert.GreaterOrEqual(t, greatest, 0)
+	assert.Equal(t, 0, list.currentHighlight)
 }
 
 func TestList_Selection(t *testing.T) {

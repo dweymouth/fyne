@@ -662,3 +662,83 @@ func TestPainter_paintText_scale2(t *testing.T) {
 
 	test.AssertImageMatches(t, "draw_text_scale2.png", p.Paint(c))
 }
+
+func TestPainter_paintArbitraryPolygon(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	p := software.NewPainter()
+	c := test.NewCanvas()
+	c.SetPadded(true)
+
+	// Simple Triangle
+	trianglePoints := []fyne.Position{
+		fyne.NewPos(50, 10),
+		fyne.NewPos(90, 90),
+		fyne.NewPos(10, 90),
+	}
+	poly := canvas.NewArbitraryPolygon(trianglePoints, color.Black)
+	poly.Resize(fyne.NewSize(100, 100))
+	c.SetContent(poly)
+	c.Resize(fyne.NewSize(100+2*theme.Padding(), 100+2*theme.Padding()))
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_triangle.png", p.Paint(c))
+
+	// Concave Shape (F-shape)
+	concavePoints := []fyne.Position{
+		fyne.NewPos(10, 10),
+		fyne.NewPos(90, 10),
+		fyne.NewPos(90, 30),
+		fyne.NewPos(40, 30),
+		fyne.NewPos(40, 45),
+		fyne.NewPos(80, 45),
+		fyne.NewPos(80, 65),
+		fyne.NewPos(40, 65),
+		fyne.NewPos(40, 90),
+		fyne.NewPos(10, 90),
+	}
+	poly.Points = concavePoints
+	poly.FillColor = color.NRGBA{B: 255, A: 255}
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_concave.png", p.Paint(c))
+
+	// Heart with Mixed Corner Radii
+	heartPoints := []fyne.Position{
+		fyne.NewPos(50, 25),
+		fyne.NewPos(80, 5),
+		fyne.NewPos(100, 40),
+		fyne.NewPos(50, 95),
+		fyne.NewPos(0, 40),
+		fyne.NewPos(20, 5),
+	}
+
+	poly.Points = heartPoints
+	poly.CornerRadii = []float32{0, 20, 20, 0, 20, 20}
+	poly.FillColor = color.NRGBA{R: 255, G: 0, B: 0, A: 255}
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_mixed_radii.png", p.Paint(c))
+
+	// Maximum Vertices (16) - a rough circle
+	maxPoints := []fyne.Position{
+		fyne.NewPos(50, 10), fyne.NewPos(65, 13), fyne.NewPos(78, 22), fyne.NewPos(87, 35),
+		fyne.NewPos(90, 50), fyne.NewPos(87, 65), fyne.NewPos(78, 78), fyne.NewPos(65, 87),
+		fyne.NewPos(50, 90), fyne.NewPos(35, 87), fyne.NewPos(22, 78), fyne.NewPos(13, 65),
+		fyne.NewPos(10, 50), fyne.NewPos(13, 35), fyne.NewPos(22, 22), fyne.NewPos(35, 13),
+	}
+	poly.Points = maxPoints
+	poly.CornerRadii = nil // Reset
+	poly.FillColor = color.Black
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_max_vertices.png", p.Paint(c))
+
+	// Stroke and Fill with corner radii
+	poly.Points = trianglePoints
+	poly.FillColor = color.NRGBA{R: 255, G: 0, B: 0, A: 128}
+	poly.StrokeColor = color.Black
+	poly.StrokeWidth = 5
+	poly.CornerRadii = []float32{25, 5}
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_stroke_fill_rounded.png", p.Paint(c))
+
+	// Triangle with normalized points
+	poly.Points = []fyne.Position{
+		fyne.NewPos(0.5, 0.1),
+		fyne.NewPos(0.9, 0.9),
+		fyne.NewPos(0.1, 0.9),
+	}
+	poly.NormalizedPoints = true
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_stroke_fill_rounded.png", p.Paint(c))
+}

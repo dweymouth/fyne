@@ -160,12 +160,13 @@ func (ctx *context) CreateBuffer() Buffer {
 func (ctx *context) CreateProgram() Program {
 	return Program{
 		Init: true,
-		Value: uint32(ctx.enqueue(call{
-			args: fnargs{
-				fn: glfnCreateProgram,
+		Value: uint32(ctx.enqueue(
+			call{
+				args: fnargs{
+					fn: glfnCreateProgram,
+				},
+				blocking: true,
 			},
-			blocking: true,
-		},
 		)),
 	}
 }
@@ -526,6 +527,18 @@ func (ctx *context) Uniform2f(dst Uniform, v0, v1 float32) {
 			a1: uintptr(math.Float32bits(v0)),
 			a2: uintptr(math.Float32bits(v1)),
 		},
+	})
+}
+
+func (ctx *context) Uniform2fv(dst Uniform, src []float32) {
+	ctx.enqueue(call{
+		args: fnargs{
+			fn: glfnUniform2fv,
+			a0: dst.c(),
+			a1: uintptr(len(src) / 2),
+		},
+		parg:     unsafe.Pointer(&src[0]),
+		blocking: true,
 	})
 }
 

@@ -254,10 +254,14 @@ var glfnFuncs = [...]func(c call) (ret uintptr){
 	},
 	glfnUniform1fv: func(c call) (ret uintptr) {
 		syscall.Syscall(glUniform1fv.Addr(), 3, c.args.a0, c.args.a1, uintptr(c.parg))
-		return
+		return ret
 	},
 	glfnUniform2f: func(c call) (ret uintptr) {
 		syscall.SyscallN(glUniform2f.Addr(), c.args.a0, c.args.a1, c.args.a2)
+		return ret
+	},
+	glfnUniform2fv: func(c call) (ret uintptr) {
+		syscall.SyscallN(glUniform2fv.Addr(), c.args.a0, c.args.a1, uintptr(c.parg))
 		return ret
 	},
 	glfnUniform4f: func(c call) (ret uintptr) {
@@ -350,6 +354,7 @@ var (
 	glUniform1f               = libGLESv2.NewProc("glUniform1f")
 	glUniform1fv              = libGLESv2.NewProc("glUniform1fv")
 	glUniform2f               = libGLESv2.NewProc("glUniform2f")
+	glUniform2fv              = libGLESv2.NewProc("glUniform2fv")
 	glUniform4f               = libGLESv2.NewProc("glUniform4f")
 	glUniform4fv              = libGLESv2.NewProc("glUniform4fv")
 	glUseProgram              = libGLESv2.NewProc("glUseProgram")

@@ -38,20 +38,23 @@ func TestColorDialog_Theme(t *testing.T) {
 
 	d := NewColorPicker("Color Picker", "Pick a Color", nil, w)
 	d.Advanced = true
-	d.Refresh()
 	d.Show()
 
 	test.AssertRendersToImage(t, "color/dialog_theme_default.png", w.Canvas())
 
 	test.ApplyTheme(t, test.NewTheme())
+	d.Resize(d.MinSize())
 	test.AssertRendersToImage(t, "color/dialog_theme_ugly.png", w.Canvas())
 
 	d.advanced.Open(0)
 
 	test.ApplyTheme(t, test.Theme())
+	d.Resize(d.MinSize())
+
 	test.AssertRendersToImage(t, "color/dialog_expanded_theme_default.png", w.Canvas())
 
 	test.ApplyTheme(t, test.NewTheme())
+	d.Resize(d.MinSize())
 	test.AssertRendersToImage(t, "color/dialog_expanded_theme_ugly.png", w.Canvas())
 }
 
