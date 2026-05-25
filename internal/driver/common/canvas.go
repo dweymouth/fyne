@@ -235,25 +235,6 @@ func (c *Canvas) FreeDirtyTextures() uint64 {
 
 	cache.CleanTextures(c.impl, c.painter.Free)
 	return objectsToFree
-	for c.refreshQueue.Len() > 0 {
-		object := c.refreshQueue.Out()
-		if !shouldFilterDuplicates {
-			freed++
-			freeObject(object)
-		} else {
-			refreshSet[object] = struct{}{}
-			tasksToDo--
-			if tasksToDo == 0 {
-				shouldFilterDuplicates = false // stop collecting messages to avoid starvation
-				for object := range refreshSet {
-					freed++
-					freeObject(object)
-				}
-			}
-		}
-	}
-
-	return
 }
 
 // Initialize initializes the canvas.
