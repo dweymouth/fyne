@@ -377,7 +377,7 @@ func (d *driver) handlePaint(e paint.Event, w *window) {
 	if shouldClean {
 		cache.Clean()
 	}
-  w.updateAccessibility()
+	w.updateAccessibility()
 	cache.IncrementFrameCounter()
 }
 
