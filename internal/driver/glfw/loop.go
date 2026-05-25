@@ -235,30 +235,21 @@ func (d *gLDriver) repaintWindow(w *window, cleanTextures bool) bool {
 			view.SwapBuffers()
 		}
 
-	if cleanTextures {
-		// the object tree walks in EnsureMinSize and canvas.paint
-		// will have ensured all alive objects are marked in the caches
-		// No need to call canvas.markAlive
-		var texFree func(fyne.CanvasObject)
-		if canvas.Painter() != nil {
-			texFree = canvas.Painter().Free
+		if cleanTextures {
+			// the object tree walks in EnsureMinSize and canvas.paint
+			// will have ensured all alive objects are marked in the caches
+			// No need to call canvas.markAlive
+			var texFree func(fyne.CanvasObject)
+			if canvas.Painter() != nil {
+				texFree = canvas.Painter().Free
+			}
+			cache.CleanTextures(canvas, texFree)
 		}
-		cache.CleanTextures(canvas, texFree)
-	}
 
-	updateGLContext(w)
-	canvas.paint(canvas.Size())
+		updateGLContext(w)
+		canvas.paint(canvas.Size())
+	})
 
-	view := w.viewport
-	visible := w.visible
-
-	if view != nil && visible {
-		view.SwapBuffers()
-	}
-
-	// mark that we have walked the window and don't
-	// need to walk it again to mark caches alive
-	w.lastWalkedTime = time.Now()
 	return freed
 }
 
