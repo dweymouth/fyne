@@ -140,7 +140,7 @@ func (p *ProgressBarInfinite) Start() {
 	}
 
 	p.running = true
-	p.BaseWidget.Refresh()
+	p.Refresh()
 }
 
 // Stop the infinite progress bar animation
@@ -150,7 +150,7 @@ func (p *ProgressBarInfinite) Stop() {
 	}
 
 	p.running = false
-	p.BaseWidget.Refresh()
+	p.Refresh()
 }
 
 // Running returns the current state of the infinite progress animation
@@ -188,6 +188,7 @@ func (p *ProgressBarInfinite) CreateRenderer() fyne.WidgetRenderer {
 	render.SetObjects([]fyne.CanvasObject{&render.background, &render.bar})
 
 	p.running = true
+	render.start()
 	return render
 }
 

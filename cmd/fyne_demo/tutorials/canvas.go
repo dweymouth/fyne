@@ -36,7 +36,8 @@ func canvasScreen(_ fyne.Window) fyne.CanvasObject {
 		}
 	}()
 
-	return container.NewGridWrap(fyne.NewSize(90, 90),
+	return container.NewGridWrap(
+		fyne.NewSize(90, 90),
 		canvas.NewImageFromResource(data.FyneLogo),
 		&canvas.Rectangle{
 			FillColor:   color.NRGBA{0x80, 0, 0, 0xff},
@@ -49,9 +50,31 @@ func canvasScreen(_ fyne.Window) fyne.CanvasObject {
 			StrokeWidth:  4.0,
 			CornerRadius: 20,
 		},
-		&canvas.Polygon{
+		&canvas.RegularPolygon{
 			FillColor: color.NRGBA{B: 0x80, A: 0xff}, Sides: 3, Angle: -30,
 			StrokeColor: color.NRGBA{R: 0xff, G: 0x80, A: 0xff}, StrokeWidth: 2,
+		},
+		&canvas.ArbitraryPolygon{
+			FillColor:   color.NRGBA{G: 0x80, A: 0xff},
+			StrokeColor: color.NRGBA{R: 0x66, G: 0x66, B: 0x66, A: 0xff},
+			StrokeWidth: 4,
+			Points: []fyne.Position{
+				fyne.NewPos(4, 4),
+				fyne.NewPos(4, 84),
+				fyne.NewPos(84, 84),
+			},
+		},
+		&canvas.ArbitraryPolygon{
+			FillColor: color.NRGBA{R: 0x80, A: 0xff},
+			Points: []fyne.Position{
+				fyne.NewPos(58, 4),
+				fyne.NewPos(86, 32),
+				fyne.NewPos(44, 74),
+				fyne.NewPos(2, 32),
+				fyne.NewPos(30, 4),
+				fyne.NewPos(44, 32),
+			},
+			CornerRadii: []float32{20, 20, 0, 20, 20, 0},
 		},
 		&canvas.Line{StrokeColor: color.NRGBA{0, 0, 0x80, 0xff}, StrokeWidth: 5},
 		&canvas.Circle{
@@ -59,9 +82,19 @@ func canvasScreen(_ fyne.Window) fyne.CanvasObject {
 			FillColor:   color.NRGBA{0x30, 0x30, 0x30, 0x60},
 			StrokeWidth: 2,
 		},
+		&canvas.Arc{
+			StrokeColor:  color.NRGBA{R: 0x80, A: 0xff},
+			FillColor:    color.NRGBA{G: 0x80, A: 0xff},
+			StrokeWidth:  4,
+			StartAngle:   -240,
+			EndAngle:     60,
+			CornerRadius: 6,
+			CutoutRatio:  0.2,
+		},
 		canvas.NewText("Text", color.NRGBA{0, 0x80, 0, 0xff}),
 		canvas.NewRasterWithPixels(rgbGradient),
 		gradient,
 		canvas.NewRadialGradient(color.NRGBA{0x80, 0, 0, 0xff}, color.NRGBA{0, 0x80, 0x80, 0xff}),
+		newCubeShader(),
 	)
 }

@@ -20,6 +20,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGlCanvas_ChildMinSizeChangeAffectsAncestorsUpToRoot(t *testing.T) {
@@ -332,23 +333,20 @@ func TestGlCanvas_InsufficientSizeDoesntTriggerResizeIfSizeIsAlreadyMaxedOut(t *
 	c := w.Canvas()
 	canvasSize := fyne.NewSize(200, 100)
 	w.Resize(canvasSize)
-	ensureCanvasSize(t, w, canvasSize)
+	require.Equal(t, canvasSize, w.Canvas().Size())
 	popUpContent := canvas.NewRectangle(color.Black)
 	popUpContent.SetMinSize(fyne.NewSize(1000, 10))
 	popUp := widget.NewPopUp(popUpContent, c)
+	popUp.Show()
 
-	// This is because of a bug in PopUp size handling that will be fixed later.
-	// This line will vanish then.
-	popUp.Resize(popUpContent.MinSize().Add(fyne.NewSize(theme.Padding()*2, theme.Padding()*2)))
-
-	assert.Equal(t, fyne.NewSize(1000, 10), popUpContent.Size())
-	assert.Equal(t, fyne.NewSize(1000, 10).Add(fyne.NewSize(theme.Padding()*2, theme.Padding()*2)), popUp.MinSize())
-	assert.Equal(t, canvasSize, popUp.Size())
+	assert.Equal(t, fyne.NewSize(200, 10), popUpContent.Size())
+	assert.Equal(t, fyne.NewSize(1000, 10), popUp.MinSize())
+	assert.Equal(t, canvasSize, c.Overlays().Top().Size())
 
 	repaintWindow(w)
 
-	assert.Equal(t, fyne.NewSize(1000, 10), popUpContent.Size())
-	assert.Equal(t, canvasSize, popUp.Size())
+	assert.Equal(t, fyne.NewSize(200, 10), popUpContent.Size())
+	assert.Equal(t, canvasSize, c.Overlays().Top().Size())
 }
 
 func TestGlCanvas_MinSizeShrinkTriggersLayout(t *testing.T) {
@@ -418,7 +416,6 @@ func TestGlCanvas_PixelCoordinateAtPosition(t *testing.T) {
 	assert.Equal(t, 20, y)
 }
 
-// TODO: this can be removed when #707 is addressed
 func TestGlCanvas_ResizeWithOtherOverlay(t *testing.T) {
 	w := createWindow("Test")
 	w.SetPadded(false)
@@ -431,19 +428,14 @@ func TestGlCanvas_ResizeWithOtherOverlay(t *testing.T) {
 		c.Overlays().Add(over)
 	})
 	ensureCanvasSize(t, w, fyne.NewSize(69, 36))
-	// TODO: address #707; overlays should always be canvas size
-	size := w.Canvas().Size()
-	runOnMain(func() {
-		over.Resize(size)
-	})
 
-	size = fyne.NewSize(200, 100)
+	size := fyne.NewSize(200, 100)
 	runOnMain(func() {
 		assert.NotEqual(t, size, content.Size())
 	})
 
 	w.Resize(size)
-	ensureCanvasSize(t, w, size)
+	require.Equal(t, size, w.Canvas().Size())
 	runOnMain(func() {
 		assert.Equal(t, size, content.Size(), "canvas content is resized")
 		assert.Equal(t, size, over.Size(), "canvas overlay is resized")
@@ -475,38 +467,38 @@ func TestGlCanvas_ResizeWithOverlays(t *testing.T) {
 	assert.NotEqual(t, size, o3.Size())
 
 	w.Resize(size)
-	ensureCanvasSize(t, w, size)
+	require.Equal(t, size, w.Canvas().Size())
 	assert.Equal(t, size, content.Size(), "canvas content is resized")
 	assert.Equal(t, size, o1.Size(), "canvas overlay 1 is resized")
 	assert.Equal(t, size, o2.Size(), "canvas overlay 2 is resized")
 	assert.Equal(t, size, o3.Size(), "canvas overlay 3 is resized")
 }
 
-// TODO: this can be removed when #707 is addressed
 func TestGlCanvas_ResizeWithPopUpOverlay(t *testing.T) {
 	w := createWindow("Test")
 	w.SetPadded(false)
 
 	content := widget.NewLabel("Content")
-	over := widget.NewPopUp(widget.NewLabel("Over"), w.Canvas())
+	pop := widget.NewPopUp(widget.NewLabel("Over"), w.Canvas())
 	w.SetContent(content)
 	runOnMain(func() {
-		over.Show()
+		pop.Show()
 	})
 	ensureCanvasSize(t, w, fyne.NewSize(69, 36))
 
 	size := fyne.NewSize(200, 100)
-	overContentSize := over.Content.Size()
+	overContentSize := pop.Size()
 	assert.NotZero(t, overContentSize)
 	assert.NotEqual(t, size, content.Size())
-	assert.NotEqual(t, size, over.Size())
+	assert.NotEqual(t, size, pop.Size())
 	assert.NotEqual(t, size, overContentSize)
 
 	w.Resize(size)
-	ensureCanvasSize(t, w, size)
+	over := w.Canvas().Overlays().Top()
+	require.Equal(t, size, w.Canvas().Size())
 	assert.Equal(t, size, content.Size(), "canvas content is resized")
 	assert.Equal(t, size, over.Size(), "canvas overlay is resized")
-	assert.Equal(t, overContentSize, over.Content.Size(), "canvas overlay content is _not_ resized")
+	assert.Equal(t, overContentSize, pop.Size(), "canvas overlay content is _not_ resized")
 }
 
 func TestGlCanvas_ResizeWithModalPopUpOverlay(t *testing.T) {
@@ -526,13 +518,11 @@ func TestGlCanvas_ResizeWithModalPopUpOverlay(t *testing.T) {
 
 	winSize := fyne.NewSize(1000, 600)
 	w.Resize(winSize)
-	ensureCanvasSize(t, w, winSize)
+	require.Equal(t, winSize, w.Canvas().Size())
 
-	// get popup content padding dynamically
-	popupContentPadding := popup.MinSize().Subtract(popup.Content.MinSize())
-
-	assert.Equal(t, popupBgSize.Subtract(popupContentPadding), popup.Content.Size())
-	assert.Equal(t, winSize, popup.Size())
+	popup.Resize(popupBgSize)
+	assert.Equal(t, popupBgSize, popup.Size())
+	assert.Equal(t, winSize, w.Canvas().Overlays().Top().Size())
 }
 
 func TestGlCanvas_Scale(t *testing.T) {
@@ -581,7 +571,7 @@ func TestGlCanvas_SetContent(t *testing.T) {
 			canvasSize := float32(200)
 			w.SetContent(content)
 			w.Resize(fyne.NewSize(canvasSize, canvasSize))
-			ensureCanvasSize(t, w, fyne.NewSize(canvasSize, canvasSize))
+			require.Equal(t, fyne.NewSize(canvasSize, canvasSize), w.Canvas().Size())
 
 			newContent := canvas.NewCircle(color.White)
 			assert.Equal(t, fyne.NewPos(0, 0), newContent.Position())
@@ -653,7 +643,7 @@ func (s *safeCanvas) FocusPrevious() {
 	runOnMain(s.glCanvas.FocusPrevious)
 }
 
-func (s *safeCanvas) Focussed() (ret fyne.Focusable) {
+func (s *safeCanvas) Focused() (ret fyne.Focusable) {
 	runOnMain(func() {
 		ret = s.glCanvas.Focused()
 	})
@@ -689,13 +679,13 @@ func (s *safeCanvas) SetPadded(pad bool) {
 
 func (s *safeCanvas) SetScale(scale float32) {
 	runOnMain(func() {
-		s.glCanvas.scale = scale
+		s.scale = scale
 	})
 }
 
 func (s *safeCanvas) SetTexScale(scale float32) {
 	runOnMain(func() {
-		s.glCanvas.texScale = scale
+		s.texScale = scale
 	})
 }
 
@@ -713,7 +703,7 @@ func (s *safeCanvas) Size() (ret fyne.Size) {
 
 func (s *safeCanvas) TexScale() (ret float32) {
 	runOnMain(func() {
-		ret = s.glCanvas.texScale
+		ret = s.texScale
 	})
 
 	return ret

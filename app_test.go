@@ -1,8 +1,10 @@
 package fyne
 
 import (
+	"errors"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -13,11 +15,11 @@ func (dummyApp) CloudProvider() CloudProvider {
 	return nil
 }
 
-func (dummyApp) NewWindow(title string) Window {
+func (dummyApp) NewWindow(_ string) Window {
 	return nil
 }
 
-func (dummyApp) OpenURL(url *url.URL) error {
+func (dummyApp) OpenURL(_ *url.URL) error {
 	return nil
 }
 
@@ -45,6 +47,14 @@ func (dummyApp) UniqueID() string {
 func (dummyApp) SendNotification(*Notification) {
 }
 
+func (dummyApp) ScheduleNotification(*Notification, time.Time) (*ScheduledNotification, error) {
+	return nil, errors.New("unimplemented")
+}
+
+func (dummyApp) CancelScheduledNotification(string) error {
+	return nil
+}
+
 func (dummyApp) SetCloudProvider(CloudProvider) {
 }
 
@@ -66,6 +76,10 @@ func (dummyApp) Lifecycle() Lifecycle {
 
 func (dummyApp) Metadata() AppMetadata {
 	return AppMetadata{}
+}
+
+func (dummyApp) Cache() Cache {
+	return nil
 }
 
 func (dummyApp) Clipboard() Clipboard {

@@ -3,8 +3,11 @@ package dialog
 import (
 	"testing"
 
-	"fyne.io/fyne/v2/lang"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	intWidget "fyne.io/fyne/v2/internal/widget"
+	"fyne.io/fyne/v2/lang"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -28,7 +31,7 @@ func TestShowFolderOpen(t *testing.T) {
 	d.SetLocation(dir)
 	d.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -48,26 +51,26 @@ func TestShowFolderOpen(t *testing.T) {
 	assert.Equal(t, lang.L("(Parent)"), fileName)
 	assert.False(t, open.Disabled())
 
-	var target *fyne.URI
+	var target fyne.URI
 	id := -1
 	for i, uri := range d.dialog.data {
 		ok, _ := storage.CanList(uri)
 		if ok {
-			target = &uri
+			target = uri
 			id = i
 		} else {
 			t.Error("Folder dialog should not list files")
 		}
 	}
 
-	assert.NotNil(t, target, "Failed to find folder in testdata")
+	require.NotNil(t, target, "Failed to find folder in testdata")
 	d.dialog.files.(*widget.GridWrap).Select(id)
-	assert.Equal(t, (*target).Name(), nameLabel.Text)
+	assert.Equal(t, target.Name(), nameLabel.Text)
 	assert.False(t, open.Disabled())
 
 	test.Tap(open)
 	assert.Nil(t, win.Canvas().Overlays().Top())
 	assert.NoError(t, openErr)
 
-	assert.Equal(t, (*target).String(), chosen.String())
+	assert.Equal(t, target.String(), chosen.String())
 }

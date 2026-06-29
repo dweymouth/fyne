@@ -46,6 +46,10 @@ type Entry struct {
 	TextStyle   fyne.TextStyle
 	PlaceHolder string
 	OnChanged   func(string) `json:"-"`
+
+	// OnSubmitted will be called when the user presses Enter/Return (for a single line entry).
+	// MultiLine entries will be submitted when Shift+Enter (or Return) are pressed.
+	//
 	// Since: 2.0
 	OnSubmitted func(string) `json:"-"`
 	Password    bool
@@ -63,6 +67,7 @@ type Entry struct {
 	validationStatus    *validationStatus
 	onValidationChanged func(error)
 	validationError     error
+	onRequiredChanged   func(bool)
 
 	// If true, the Validator runs automatically on render without user interaction.
 	// It will reflect any validation errors found or those explicitly set via SetValidationError().
@@ -79,12 +84,12 @@ type Entry struct {
 
 	cursorAnim *entryCursorAnimation
 
-	dirty       bool
-	focused     bool
-	text        RichText
-	placeholder RichText
-	content     *entryContent
-	scroll      *widget.Scroll
+	dirty               bool
+	focused, hasFocused bool
+	text                RichText
+	placeholder         RichText
+	content             *entryContent
+	scroll              *widget.Scroll
 
 	// useful for Form validation (as the error text should only be shown when
 	// the entry is unfocused)
@@ -299,6 +304,7 @@ func (e *Entry) ExtendBaseWidget(wid fyne.Widget) {
 // FocusGained is called when the Entry has been given focus.
 func (e *Entry) FocusGained() {
 	e.setFieldsAndRefresh(func() {
+		e.hasFocused = true
 		e.dirty = true
 		e.focused = true
 	})
@@ -318,6 +324,10 @@ func (e *Entry) FocusLost() {
 		e.focused = false
 		e.selectKeyDown = false
 	})
+	if e.Validator != nil {
+		e.validate()
+		e.Refresh()
+	}
 	if e.onFocusChanged != nil {
 		e.onFocusChanged(false)
 	}
@@ -584,9 +594,15 @@ func (e *Entry) TappedSecondary(pe *fyne.PointEvent) {
 	}
 
 	driver := app.Driver()
+	c := driver.CanvasForObject(super)
+	if c == nil {
+		// Entry was detached from its canvas between the tap event and
+		// this call (see fyne-io/fyne#5965). Skip the context menu.
+		return
+	}
 	entryPos := driver.AbsolutePositionForObject(super)
 	popUpPos := entryPos.Add(pe.Position)
-	e.popUp = NewPopUpMenu(fyne.NewMenu("", menuItems...), driver.CanvasForObject(super))
+	e.popUp = NewPopUpMenu(fyne.NewMenu("", menuItems...), c)
 	e.popUp.ShowAtPosition(popUpPos)
 }
 
@@ -987,7 +1003,7 @@ func (e *Entry) pasteFromClipboard(clipboard fyne.Clipboard) {
 
 	if !e.MultiLine {
 		// format clipboard content to be compatible with single line entry
-		text = strings.Replace(text, "\n", " ", -1)
+		text = strings.ReplaceAll(text, "\n", " ")
 	}
 
 	if e.sel.selecting {
@@ -1387,7 +1403,14 @@ func (e *Entry) updateMousePointer(p fyne.Position, rightClick bool) {
 // It assumes that a lock exists on the widget.
 func (e *Entry) updateText(text string, fromBinding bool) bool {
 	changed := e.Text != text
+	wasEmpty := e.Text == ""
 	e.Text = text
+	if e.onRequiredChanged != nil {
+		empty := text == ""
+		if wasEmpty != empty {
+			e.onRequiredChanged(!empty)
+		}
+	}
 	e.syncSegments()
 	e.text.updateRowBounds()
 
@@ -1692,7 +1715,7 @@ func (r *entryRenderer) Refresh() {
 	r.box.CornerRadius = th.Size(theme.SizeNameInputRadius)
 	r.border.CornerRadius = r.box.CornerRadius
 	if focusedAppearance {
-		r.border.StrokeColor = th.Color(theme.ColorNamePrimary, v)
+		r.border.StrokeColor = th.Color(theme.ColorNameFocus, v)
 	} else {
 		if r.entry.Disabled() {
 			r.border.StrokeColor = th.Color(theme.ColorNameDisabled, v)
@@ -1838,7 +1861,7 @@ func (r *entryContentRenderer) Refresh() {
 		if settings.ShowAnimations() {
 			r.content.entry.cursorAnim.start()
 		} else {
-			r.cursor.FillColor = th.Color(theme.ColorNamePrimary, settings.ThemeVariant())
+			r.cursor.FillColor = th.Color(theme.ColorNameFocus, settings.ThemeVariant())
 		}
 		r.cursor.Show()
 	} else {
@@ -2058,20 +2081,7 @@ func (i *entryModifyAction) TryMerge(other entryMergeableUndoAction) bool {
 		}
 
 		// Don't merge two separate words
-		wordSeparators := func(s []rune) (num int, onlyWordSeparators bool) {
-			onlyWordSeparators = true
-			for _, r := range s {
-				if isWordSeparator(r) {
-					num++
-					onlyWordSeparators = false
-				}
-			}
-			return num, onlyWordSeparators
-		}
-		selfNumWS, _ := wordSeparators(i.Text)
-		otherNumWS, otherOnlyWS := wordSeparators(other.Text)
-		if !((selfNumWS == 0 && otherNumWS == 0) ||
-			(selfNumWS > 0 && otherOnlyWS)) {
+		if strings.IndexFunc(string(other.Text), isWordSeparator) >= 0 {
 			return false
 		}
 

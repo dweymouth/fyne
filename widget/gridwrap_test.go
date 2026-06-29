@@ -3,10 +3,12 @@ package widget
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/driver/software"
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/theme"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGridWrap_Focus(t *testing.T) {
@@ -16,7 +18,7 @@ func TestGridWrap_Focus(t *testing.T) {
 	defer window.Close()
 	window.Resize(list.MinSize().Max(fyne.NewSize(150, 200)))
 
-	canvas := window.Canvas().(test.WindowlessCanvas)
+	canvas := window.Canvas().(software.WindowlessCanvas)
 	assert.Nil(t, canvas.Focused())
 
 	canvas.FocusNext()
@@ -206,6 +208,44 @@ func TestGridWrap_RefreshItem(t *testing.T) {
 	assert.Equal(t, "Replace", children[2].(*gridWrapItem).child.(*Label).Text)
 }
 
+func TestGridWrap_Highlight(t *testing.T) {
+	g := createGridWrap(1000)
+
+	// override update item to keep track of greatest item rendered
+	oldUpdateFunc := g.UpdateItem
+	var greatest GridWrapItemID = -1
+	g.UpdateItem = func(id GridWrapItemID, item fyne.CanvasObject) {
+		if id > greatest {
+			greatest = id
+		}
+		oldUpdateFunc(id, item)
+	}
+
+	g.Highlight(650)
+	assert.GreaterOrEqual(t, greatest, 650)
+	assert.Equal(t, 650, g.currentHighlight)
+
+	g.Highlight(800)
+	assert.GreaterOrEqual(t, greatest, 800)
+	assert.Equal(t, 800, g.currentHighlight)
+
+	g.Highlight(999)
+	assert.Equal(t, greatest, 999)
+	assert.Equal(t, 999, g.currentHighlight)
+
+	g.Highlight(1001)
+	assert.Equal(t, greatest, 999)
+	assert.Equal(t, 999, g.currentHighlight)
+
+	g.Highlight(0)
+	assert.GreaterOrEqual(t, greatest, 0)
+	assert.Equal(t, 0, g.currentHighlight)
+
+	g.Highlight(-1)
+	assert.GreaterOrEqual(t, greatest, 0)
+	assert.Equal(t, 0, g.currentHighlight)
+}
+
 func TestGridWrap_Selection(t *testing.T) {
 	g := createGridWrap(10)
 	assert.Empty(t, g.selected)
@@ -263,7 +303,7 @@ func TestGridWrap_TypedKey(t *testing.T) {
 	// want 3 columns to make assert navigaiton behavior
 	assert.Equal(t, 3, gridWrap.ColumnCount())
 
-	canvas := window.Canvas().(test.WindowlessCanvas)
+	canvas := window.Canvas().(software.WindowlessCanvas)
 	canvas.FocusNext()
 	gridWrap.TypedKey(&fyne.KeyEvent{Name: fyne.KeyDown})
 	assert.Equal(t, 3, gridWrap.currentHighlight)

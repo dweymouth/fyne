@@ -3,27 +3,29 @@ module fyne.io/fyne/v2
 go 1.19
 
 require (
-	fyne.io/systray v1.12.0
+	fyne.io/systray v1.12.2
 	github.com/BurntSushi/toml v1.5.0
 	github.com/FyshOS/fancyfs v0.0.0-20251025194026-1f03098ff624
+	github.com/anthonynsimon/bild v0.13.0
 	github.com/fogleman/gg v1.3.0
 	github.com/fredbi/uri v1.1.1
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/fyne-io/gl-js v0.2.0
-	github.com/fyne-io/glfw-js v0.3.0
+	github.com/fyne-io/gl-js v0.2.1-0.20260315212741-029c47fd27e8
+	github.com/fyne-io/glfw-js v0.4.0
 	github.com/fyne-io/image v0.1.1
 	github.com/fyne-io/oksvg v0.2.0
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a
+	github.com/go-gl/glfw/v3.4/glfw v0.1.0-pre.1.0.20260627172858-eb9c312d9d47
 	github.com/go-ole/go-ole v1.2.6
-	github.com/go-text/render v0.2.0
-	github.com/go-text/typesetting v0.3.3-0.20260117213729-06c64e10eb0b
+	github.com/go-text/render v0.2.1
+	github.com/go-text/typesetting v0.3.4
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/hack-pad/go-indexeddb v0.3.2
 	github.com/jackmordaunt/icns/v2 v2.2.6
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade
 	github.com/josephspurrier/goversioninfo v1.4.0
 	github.com/lucor/goinfo v0.9.0
+	github.com/mattn/go-runewidth v0.0.17
 	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2
 	github.com/natefinch/atomic v1.0.1
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
@@ -50,6 +52,7 @@ require (
 	github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	golang.org/x/net v0.35.0 // indirect

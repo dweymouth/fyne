@@ -21,6 +21,8 @@ type Cursor struct {
 	JSName string
 }
 
+type monitor = glfw.Monitor
+
 const defaultTitle = "Fyne Application"
 
 // Input modes.
@@ -56,24 +58,23 @@ type window struct {
 	icon     fyne.Resource
 	mainmenu *fyne.MainMenu
 
-	master                     bool
-	fullScreen                 bool
-	centered                   bool
-	visible                    bool
-	mousePosUpdateProcessed    bool
-	newMousePosX, newMousePosY float64
-	mousePos                   fyne.Position
-	mouseDragged               fyne.Draggable
-	mouseDraggedObjStart       fyne.Position
-	mouseDraggedOffset         fyne.Position
-	mouseDragPos               fyne.Position
-	mouseDragStarted           bool
-	mouseButton                desktop.MouseButton
-	mouseOver                  desktop.Hoverable
-	mouseLastClick             fyne.CanvasObject
-	mousePressed               fyne.CanvasObject
-	mouseClickCount            int
-	mouseCancelFunc            context.CancelFunc
+	master                          bool
+	fullScreen, fullScreenSecondary bool
+	centered, visible               bool
+	mousePosUpdateProcessed         bool
+	newMousePosX, newMousePosY      float64
+	mousePos                        fyne.Position
+	mouseDragged                    fyne.Draggable
+	mouseDraggedObjStart            fyne.Position
+	mouseDraggedOffset              fyne.Position
+	mouseDragPos                    fyne.Position
+	mouseDragStarted                bool
+	mouseButton                     desktop.MouseButton
+	mouseOver                       desktop.Hoverable
+	mouseLastClick                  fyne.CanvasObject
+	mousePressed                    fyne.CanvasObject
+	mouseClickCount                 int
+	mouseCancelFunc                 context.CancelFunc
 
 	onClosed           func()
 	onCloseIntercepted func()
@@ -126,7 +127,11 @@ func (w *window) fitContent() {
 	w.shouldWidth, w.shouldHeight = w.requestedWidth, w.requestedHeight
 }
 
-func (w *window) getMonitorForWindow() *glfw.Monitor {
+func (w *window) getMonitorForWindow() *monitor {
+	return glfw.GetPrimaryMonitor()
+}
+
+func (w *window) getSecondaryMonitor() *monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
@@ -508,11 +513,14 @@ func (w *window) RescaleContext() {
 	w.width, w.height = w.viewport.GetSize()
 	scaledFull := fyne.NewSize(
 		scale.ToFyneCoordinate(w.canvas, w.width),
-		scale.ToFyneCoordinate(w.canvas, w.height))
+		scale.ToFyneCoordinate(w.canvas, w.height),
+	)
 	w.canvas.Resize(scaledFull)
 
 	// Ensure textures re-rasterize at the new scale
-	cache.DeleteTextTexturesFor(w.canvas)
+	w.RunWithContext(func() {
+		cache.DeleteTextTexturesFor(w.canvas)
+	})
 	w.canvas.content.Refresh()
 }
 

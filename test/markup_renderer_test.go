@@ -618,6 +618,75 @@ func Test_snapshot(t *testing.T) {
 				"\t</content>\n" +
 				"</canvas>\n",
 		},
+		"arbitraryPolygon": {
+			content: func() fyne.CanvasObject {
+				p := fynecanvas.NewArbitraryPolygon([]fyne.Position{
+					{X: 10, Y: 10},
+					{X: 90, Y: 10},
+					{X: 50, Y: 90},
+				}, color.NRGBA{R: 100, G: 200, B: 50, A: 0})
+				p.StrokeColor = color.Black
+				p.StrokeWidth = 2
+				p.CornerRadii = []float32{5, 10, 5}
+				return p
+			}(),
+			size: fyne.NewSize(42, 42),
+			pos:  fyne.NewPos(17, 17),
+			want: "<canvas size=\"100x100\">\n" +
+				"\t<content>\n" +
+				"\t\t<arbitraryPolygon fillColor=\"rgba(100,200,50,0)\" point0=\"10,10\" point1=\"90,10\" point2=\"50,90\" pos=\"17,17\" radius0=\"5\" radius1=\"10\" radius2=\"5\" size=\"42x42\" strokeColor=\"rgba(0,0,0,255)\" strokeWidth=\"2\"/>\n" +
+				"\t</content>\n" +
+				"</canvas>\n",
+		},
+		"arbitraryPolygon normalized": {
+			content: func() fyne.CanvasObject {
+				p := fynecanvas.NewArbitraryPolygon([]fyne.Position{
+					{X: 0.375, Y: 0.375},
+					{X: 0.875, Y: 0.875},
+					{X: 0.5, Y: 0.5},
+				}, color.NRGBA{R: 100, G: 200, B: 50, A: 0})
+				p.NormalizedPoints = true
+				return p
+			}(),
+			want: "<canvas size=\"100x100\">\n" +
+				"\t<content>\n" +
+				"\t\t<arbitraryPolygon fillColor=\"rgba(100,200,50,0)\" normalizedPoints point0=\"0.375,0.375\" point1=\"0.875,0.875\" point2=\"0.5,0.5\" size=\"100x100\"/>\n" +
+				"\t</content>\n" +
+				"</canvas>\n",
+		},
+		"ellipse": {
+			content: fynecanvas.NewEllipse(color.NRGBA{R: 100, G: 200, B: 50, A: 0}),
+			size:    fyne.NewSize(17, 42),
+			pos:     fyne.NewPos(42, 17),
+			want: "<canvas size=\"100x100\">\n" +
+				"\t<content>\n" +
+				"\t\t<ellipse fillColor=\"rgba(100,200,50,0)\" pos=\"42,17\" size=\"17x42\"/>\n" +
+				"\t</content>\n" +
+				"</canvas>\n",
+		},
+		"ellipse with theme color": { // we won’t test _all_ valid values … it’s not that important
+			content: fynecanvas.NewEllipse(theme.Color(theme.ColorNameHover)),
+			want: "<canvas size=\"100x100\">\n" +
+				"\t<content>\n" +
+				"\t\t<ellipse fillColor=\"hover\" size=\"100x100\"/>\n" +
+				"\t</content>\n" +
+				"</canvas>\n",
+		},
+		"ellipse with stroke": {
+			content: func() fyne.CanvasObject {
+				r := fynecanvas.NewEllipse(color.NRGBA{R: 200, G: 100, B: 0, A: 50})
+				r.StrokeWidth = 6.375
+				r.StrokeColor = theme.Color(theme.ColorNamePlaceHolder)
+				return r
+			}(),
+			size: fyne.NewSize(42, 42),
+			pos:  fyne.NewPos(17, 17),
+			want: "<canvas size=\"100x100\">\n" +
+				"\t<content>\n" +
+				"\t\t<ellipse fillColor=\"rgba(200,100,0,50)\" pos=\"17,17\" size=\"42x42\" strokeColor=\"placeholder\" strokeWidth=\"6.375\"/>\n" +
+				"\t</content>\n" +
+				"</canvas>\n",
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			c := NewCanvas()

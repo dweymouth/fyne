@@ -3,6 +3,7 @@ package software_test
 import (
 	"image"
 	"image/color"
+	"runtime"
 	"testing"
 
 	"fyne.io/fyne/v2"
@@ -72,6 +73,25 @@ func TestPainter_paintArc(t *testing.T) {
 	test.AssertImageMatches(t, "draw_arc_empty.png", p.Paint(c))
 }
 
+func TestPainter_paintBlur(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	img := canvas.NewImageFromImage(makeTestImage(3, 3))
+	img.ScaleMode = canvas.ImageScalePixels
+	obj := canvas.NewBlur(5)
+
+	c := test.NewCanvas()
+	c.SetPadded(true)
+	c.SetContent(container.NewStack(img, container.NewPadded(obj)))
+	c.Resize(fyne.NewSize(70+2*theme.Padding(), 70+2*theme.Padding()))
+	p := software.NewPainter()
+
+	if runtime.GOOS == "darwin" {
+		test.AssertImageMatches(t, "draw_blur_darwin.png", p.Paint(c))
+	} else {
+		test.AssertImageMatches(t, "draw_blur.png", p.Paint(c))
+	}
+}
+
 func TestPainter_paintCircle(t *testing.T) {
 	test.ApplyTheme(t, test.Theme())
 	obj := canvas.NewCircle(color.Black)
@@ -100,9 +120,32 @@ func TestPainter_paintCircleStroke(t *testing.T) {
 	test.AssertImageMatches(t, "draw_circle_stroke.png", p.Paint(c))
 }
 
+func TestPainter_paintCircle_shadow(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	obj := canvas.NewCircle(color.NRGBA{R: 0, G: 0, B: 0, A: 150})
+	obj.Shadow.Color = color.White
+	obj.Shadow.Offset = fyne.NewPos(-10, -5)
+	obj.Shadow.BlurRadius = 3
+	obj.Shadow.Variant = canvas.DropShadow
+
+	c := test.NewCanvas()
+	c.SetPadded(true)
+	c.SetContent(obj)
+	c.Resize(fyne.NewSize(170+2*theme.Padding(), 170+2*theme.Padding()))
+	obj.Resize(fyne.NewSize(150, 150))
+	obj.Move(fyne.NewPos(20, 20))
+	p := software.NewPainter()
+
+	test.AssertImageMatches(t, "draw_circle_drop_shadow.png", p.Paint(c))
+
+	obj.Shadow.Variant = canvas.BoxShadow
+
+	test.AssertImageMatches(t, "draw_circle_box_shadow.png", p.Paint(c))
+}
+
 func TestPainter_paintGradient_clipped(t *testing.T) {
 	test.ApplyTheme(t, test.Theme())
-	g := canvas.NewRadialGradient(color.NRGBA{R: 200, A: 255}, color.NRGBA{B: 200, A: 255})
+	g := canvas.NewRadialGradient(color.NRGBA{R: 200, G: 0, B: 0, A: 255}, color.NRGBA{R: 0, G: 0, B: 200, A: 255})
 	g.SetMinSize(fyne.NewSize(100, 100))
 	scroll := container.NewScroll(g)
 	scroll.Move(fyne.NewPos(10, 10))
@@ -314,7 +357,7 @@ func TestPainter_paintLine_thin(t *testing.T) {
 	lines := [5]*canvas.Line{}
 	sws := []float32{4, 2, 1, 0.5, 0.3}
 	for i, sw := range sws {
-		lines[i] = canvas.NewLine(color.RGBA{255, 0, 0, 255})
+		lines[i] = canvas.NewLine(color.RGBA{R: 255, G: 0, B: 0, A: 255})
 		lines[i].StrokeWidth = sw
 		x := float32(i * 20)
 		lines[i].Position1 = fyne.NewPos(x, 10)
@@ -346,7 +389,7 @@ func TestPainter_paintLinearBezierCurve_thin(t *testing.T) {
 	lines := [5]*canvas.BezierCurve{}
 	sws := []float32{4, 2, 1, 0.5, 0.3}
 	for i, sw := range sws {
-		lines[i] = &canvas.BezierCurve{StrokeColor: color.RGBA{255, 0, 0, 255}}
+		lines[i] = &canvas.BezierCurve{StrokeColor: color.RGBA{R: 255, G: 0, B: 0, A: 255}}
 		lines[i].StrokeWidth = sw
 		x := float32(i * 20)
 		lines[i].StartPoint = fyne.NewPos(x, 10)
@@ -379,7 +422,7 @@ func TestPainter_paintQuadraticBezierCurve_thin(t *testing.T) {
 	lines := [5]*canvas.BezierCurve{}
 	sws := []float32{4, 2, 1, 0.5, 0.3}
 	for i, sw := range sws {
-		lines[i] = &canvas.BezierCurve{StrokeColor: color.RGBA{255, 0, 0, 255}}
+		lines[i] = &canvas.BezierCurve{StrokeColor: color.RGBA{R: 255, G: 0, B: 0, A: 255}}
 		lines[i].StrokeWidth = sw
 		x := float32(i * 20)
 		lines[i].StartPoint = fyne.NewPos(x, 10)
@@ -413,7 +456,7 @@ func TestPainter_paintCubicBezierCurve_thin(t *testing.T) {
 	lines := [5]*canvas.BezierCurve{}
 	sws := []float32{4, 2, 1, 0.5, 0.3}
 	for i, sw := range sws {
-		lines[i] = &canvas.BezierCurve{StrokeColor: color.RGBA{255, 0, 0, 255}}
+		lines[i] = &canvas.BezierCurve{StrokeColor: color.RGBA{R: 255, G: 0, B: 0, A: 255}}
 		lines[i].StrokeWidth = sw
 		x := float32(i * 20)
 		lines[i].StartPoint = fyne.NewPos(x, 10)
@@ -504,25 +547,25 @@ func TestPainter_paintRaster_scaled(t *testing.T) {
 
 func TestPainter_paintRectangle_clipped(t *testing.T) {
 	test.ApplyTheme(t, test.Theme())
-	red1 := canvas.NewRectangle(color.NRGBA{R: 200, A: 255})
+	red1 := canvas.NewRectangle(color.NRGBA{R: 200, G: 0, B: 0, A: 255})
 	red1.SetMinSize(fyne.NewSize(20, 20))
-	red2 := canvas.NewRectangle(color.NRGBA{R: 150, A: 255})
+	red2 := canvas.NewRectangle(color.NRGBA{R: 150, G: 0, B: 0, A: 255})
 	red2.SetMinSize(fyne.NewSize(20, 20))
-	red3 := canvas.NewRectangle(color.NRGBA{R: 100, A: 255})
+	red3 := canvas.NewRectangle(color.NRGBA{R: 100, G: 0, B: 0, A: 255})
 	red3.SetMinSize(fyne.NewSize(20, 20))
 	reds := container.NewHBox(red1, red2, red3)
-	green1 := canvas.NewRectangle(color.NRGBA{G: 200, A: 255})
+	green1 := canvas.NewRectangle(color.NRGBA{R: 0, G: 200, B: 0, A: 255})
 	green1.SetMinSize(fyne.NewSize(20, 20))
-	green2 := canvas.NewRectangle(color.NRGBA{G: 150, A: 255})
+	green2 := canvas.NewRectangle(color.NRGBA{R: 0, G: 150, B: 0, A: 255})
 	green2.SetMinSize(fyne.NewSize(20, 20))
-	green3 := canvas.NewRectangle(color.NRGBA{G: 100, A: 255})
+	green3 := canvas.NewRectangle(color.NRGBA{R: 0, G: 100, B: 0, A: 255})
 	green3.SetMinSize(fyne.NewSize(20, 20))
 	greens := container.NewHBox(green1, green2, green3)
-	blue1 := canvas.NewRectangle(color.NRGBA{B: 200, A: 255})
+	blue1 := canvas.NewRectangle(color.NRGBA{R: 0, G: 0, B: 200, A: 255})
 	blue1.SetMinSize(fyne.NewSize(20, 20))
-	blue2 := canvas.NewRectangle(color.NRGBA{B: 150, A: 255})
+	blue2 := canvas.NewRectangle(color.NRGBA{R: 0, G: 0, B: 150, A: 255})
 	blue2.SetMinSize(fyne.NewSize(20, 20))
-	blue3 := canvas.NewRectangle(color.NRGBA{B: 100, A: 255})
+	blue3 := canvas.NewRectangle(color.NRGBA{R: 0, G: 0, B: 100, A: 255})
 	blue3.SetMinSize(fyne.NewSize(20, 20))
 	blues := container.NewHBox(blue1, blue2, blue3)
 	box := container.NewVBox(reds, greens, blues)
@@ -597,6 +640,128 @@ func TestPainter_paintRectangle_perCornerRadius(t *testing.T) {
 	test.AssertImageMatches(t, "draw_rectangle_per_corner_radius_zero_base.png", p.Paint(c))
 }
 
+func TestPainter_paintRectangle_shadow(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	obj := canvas.NewRectangle(color.NRGBA{R: 0, G: 0, B: 0, A: 150})
+	obj.Shadow.Color = &color.RGBA{R: 0xFF, G: 0x33, B: 0x33, A: 0xFF}
+	obj.Shadow.Offset = fyne.NewPos(3, -4)
+	obj.Shadow.BlurRadius = 8
+	obj.Shadow.Variant = canvas.BoxShadow
+
+	c := test.NewCanvas()
+	c.SetPadded(true)
+	c.SetContent(obj)
+	c.Resize(fyne.NewSize(170+2*theme.Padding(), 170+2*theme.Padding()))
+	obj.Resize(fyne.NewSize(150, 150))
+	obj.Move(fyne.NewPos(12, 18))
+	p := software.NewPainter()
+
+	test.AssertImageMatches(t, "draw_rectangle_box_shadow.png", p.Paint(c))
+	obj.Aspect = 2
+	test.AssertImageMatches(t, "draw_rectangle_wide_box_shadow.png", p.Paint(c))
+	obj.Aspect = 0.5
+	test.AssertImageMatches(t, "draw_rectangle_narrow_box_shadow.png", p.Paint(c))
+
+	obj.Aspect = 0
+	obj.Shadow.Variant = canvas.DropShadow
+	test.AssertImageMatches(t, "draw_rectangle_drop_shadow.png", p.Paint(c))
+	obj.Aspect = 2
+	test.AssertImageMatches(t, "draw_rectangle_wide_drop_shadow.png", p.Paint(c))
+	obj.Aspect = 0.5
+	test.AssertImageMatches(t, "draw_rectangle_narrow_drop_shadow.png", p.Paint(c))
+}
+
+func TestPainter_paintRectangle_stroke_shadow(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	obj := canvas.NewRectangle(color.NRGBA{R: 0, G: 0, B: 0, A: 150})
+	obj.StrokeWidth = 2
+	obj.StrokeColor = color.White
+	obj.Shadow.Color = &color.RGBA{R: 0xFF, G: 0x33, B: 0x33, A: 0xFF}
+	obj.Shadow.Offset = fyne.NewPos(0, 0)
+	obj.Shadow.BlurRadius = 10
+
+	c := test.NewCanvas()
+	c.SetPadded(true)
+	c.SetContent(obj)
+	c.Resize(fyne.NewSize(170+2*theme.Padding(), 170+2*theme.Padding()))
+	obj.Resize(fyne.NewSize(150, 150))
+	obj.Move(fyne.NewPos(15, 15))
+	p := software.NewPainter()
+
+	test.AssertImageMatches(t, "draw_rectangle_stroke_drop_shadow.png", p.Paint(c))
+
+	obj.Aspect = 2
+	test.AssertImageMatches(t, "draw_rectangle_stroke_wide_drop_shadow.png", p.Paint(c))
+	obj.Aspect = 0.5
+	test.AssertImageMatches(t, "draw_rectangle_stroke_narrow_drop_shadow.png", p.Paint(c))
+
+	obj.Aspect = 0
+	obj.Shadow.Variant = canvas.BoxShadow
+	test.AssertImageMatches(t, "draw_rectangle_stroke_box_shadow.png", p.Paint(c))
+	obj.Aspect = 2
+	test.AssertImageMatches(t, "draw_rectangle_stroke_wide_box_shadow.png", p.Paint(c))
+	obj.Aspect = 0.5
+	test.AssertImageMatches(t, "draw_rectangle_stroke_narrow_box_shadow.png", p.Paint(c))
+}
+
+func TestPainter_paintRectangle_shadow_spread(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	obj := canvas.NewRectangle(color.NRGBA{R: 0, G: 0, B: 0, A: 150})
+	obj.Shadow.Color = &color.RGBA{R: 0xFF, G: 0x33, B: 0x33, A: 0xFF}
+	obj.Shadow.Offset = fyne.NewPos(-5, 5)
+	obj.Shadow.BlurRadius = 5
+	obj.Shadow.Variant = canvas.DropShadow
+
+	c := test.NewCanvas()
+	c.SetPadded(true)
+	c.SetContent(obj)
+	c.Resize(fyne.NewSize(170+2*theme.Padding(), 170+2*theme.Padding()))
+	obj.Resize(fyne.NewSize(150, 150))
+	obj.Move(fyne.NewPos(18, 12))
+	p := software.NewPainter()
+
+	obj.Shadow.Spread = 0
+	test.AssertImageMatches(t, "draw_rectangle_shadow_no_spread.png", p.Paint(c))
+
+	obj.Shadow.Spread = 3
+	test.AssertImageMatches(t, "draw_rectangle_shadow_positive_spread.png", p.Paint(c))
+
+	obj.Shadow.Spread = -3
+	test.AssertImageMatches(t, "draw_rectangle_shadow_negative_spread.png", p.Paint(c))
+
+	obj.Shadow.Spread = -obj.Size().Width * 2
+	test.AssertImageMatches(t, "draw_rectangle_shadow_negative_spread_maximum.png", p.Paint(c))
+}
+
+func TestPainter_paintCircle_shadow_spread(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	obj := canvas.NewCircle(color.NRGBA{R: 0, G: 0, B: 0, A: 150})
+	obj.Shadow.Color = &color.RGBA{R: 0xFF, G: 0x33, B: 0x33, A: 0xFF}
+	obj.Shadow.Offset = fyne.NewPos(5, -5)
+	obj.Shadow.BlurRadius = 7
+	obj.Shadow.Variant = canvas.BoxShadow
+
+	c := test.NewCanvas()
+	c.SetPadded(true)
+	c.SetContent(obj)
+	c.Resize(fyne.NewSize(170+2*theme.Padding(), 170+2*theme.Padding()))
+	obj.Resize(fyne.NewSize(150, 150))
+	obj.Move(fyne.NewPos(12, 18))
+	p := software.NewPainter()
+
+	obj.Shadow.Spread = 0
+	test.AssertImageMatches(t, "draw_circle_shadow_no_spread.png", p.Paint(c))
+
+	obj.Shadow.Spread = 3
+	test.AssertImageMatches(t, "draw_circle_shadow_positive_spread.png", p.Paint(c))
+
+	obj.Shadow.Spread = -3
+	test.AssertImageMatches(t, "draw_circle_shadow_negative_spread.png", p.Paint(c))
+
+	obj.Shadow.Spread = -obj.Size().Width * 2
+	test.AssertImageMatches(t, "draw_circle_shadow_negative_spread_maximum.png", p.Paint(c))
+}
+
 func TestPainter_paintText_clipped(t *testing.T) {
 	test.ApplyTheme(t, test.Theme())
 	scroll := container.NewScroll(widget.NewLabel("some text\nis here\nand here"))
@@ -641,4 +806,111 @@ func TestPainter_paintText_scale2(t *testing.T) {
 	p := software.NewPainter()
 
 	test.AssertImageMatches(t, "draw_text_scale2.png", p.Paint(c))
+}
+
+func TestPainter_paintArbitraryPolygon(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	p := software.NewPainter()
+	c := test.NewCanvas()
+	c.SetPadded(true)
+
+	// Simple Triangle
+	trianglePoints := []fyne.Position{
+		fyne.NewPos(50, 10),
+		fyne.NewPos(90, 90),
+		fyne.NewPos(10, 90),
+	}
+	poly := canvas.NewArbitraryPolygon(trianglePoints, color.Black)
+	poly.Resize(fyne.NewSize(100, 100))
+	c.SetContent(poly)
+	c.Resize(fyne.NewSize(100+2*theme.Padding(), 100+2*theme.Padding()))
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_triangle.png", p.Paint(c))
+
+	// Concave Shape (F-shape)
+	concavePoints := []fyne.Position{
+		fyne.NewPos(10, 10),
+		fyne.NewPos(90, 10),
+		fyne.NewPos(90, 30),
+		fyne.NewPos(40, 30),
+		fyne.NewPos(40, 45),
+		fyne.NewPos(80, 45),
+		fyne.NewPos(80, 65),
+		fyne.NewPos(40, 65),
+		fyne.NewPos(40, 90),
+		fyne.NewPos(10, 90),
+	}
+	poly.Points = concavePoints
+	poly.FillColor = color.NRGBA{R: 0, G: 0, B: 255, A: 255}
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_concave.png", p.Paint(c))
+
+	// Heart with Mixed Corner Radii
+	heartPoints := []fyne.Position{
+		fyne.NewPos(50, 25),
+		fyne.NewPos(80, 5),
+		fyne.NewPos(100, 40),
+		fyne.NewPos(50, 95),
+		fyne.NewPos(0, 40),
+		fyne.NewPos(20, 5),
+	}
+
+	poly.Points = heartPoints
+	poly.CornerRadii = []float32{0, 20, 20, 0, 20, 20}
+	poly.FillColor = color.NRGBA{R: 255, G: 0, B: 0, A: 255}
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_mixed_radii.png", p.Paint(c))
+
+	// Maximum Vertices (16) - a rough circle
+	maxPoints := []fyne.Position{
+		fyne.NewPos(50, 10), fyne.NewPos(65, 13), fyne.NewPos(78, 22), fyne.NewPos(87, 35),
+		fyne.NewPos(90, 50), fyne.NewPos(87, 65), fyne.NewPos(78, 78), fyne.NewPos(65, 87),
+		fyne.NewPos(50, 90), fyne.NewPos(35, 87), fyne.NewPos(22, 78), fyne.NewPos(13, 65),
+		fyne.NewPos(10, 50), fyne.NewPos(13, 35), fyne.NewPos(22, 22), fyne.NewPos(35, 13),
+	}
+	poly.Points = maxPoints
+	poly.CornerRadii = nil // Reset
+	poly.FillColor = color.Black
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_max_vertices.png", p.Paint(c))
+
+	// Stroke and Fill with corner radii
+	poly.Points = trianglePoints
+	poly.FillColor = color.NRGBA{R: 255, G: 0, B: 0, A: 128}
+	poly.StrokeColor = color.Black
+	poly.StrokeWidth = 5
+	poly.CornerRadii = []float32{25, 5}
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_stroke_fill_rounded.png", p.Paint(c))
+
+	// Triangle with normalized points
+	poly.Points = []fyne.Position{
+		fyne.NewPos(0.5, 0.1),
+		fyne.NewPos(0.9, 0.9),
+		fyne.NewPos(0.1, 0.9),
+	}
+	poly.NormalizedPoints = true
+	test.AssertImageMatches(t, "draw_arbitrary_polygon_stroke_fill_rounded.png", p.Paint(c))
+}
+
+func TestPainter_paintEllipse(t *testing.T) {
+	test.ApplyTheme(t, test.Theme())
+	obj := canvas.NewEllipse(color.Black)
+
+	c := test.NewCanvas()
+	c.SetPadded(true)
+	c.SetContent(obj)
+	c.Resize(fyne.NewSize(70+2*theme.Padding(), 70+2*theme.Padding()))
+	p := software.NewPainter()
+
+	test.AssertImageMatches(t, "draw_circle.png", p.Paint(c))
+
+	obj.Resize(fyne.NewSize(70, 35))
+	test.AssertImageMatches(t, "draw_ellipse_wide.png", p.Paint(c))
+
+	obj.StrokeColor = color.RGBA{R: 0xFF, G: 0x33, B: 0x33, A: 0xFF}
+	obj.StrokeWidth = 4
+	test.AssertImageMatches(t, "draw_ellipse_wide_stroke.png", p.Paint(c))
+
+	obj.Resize(fyne.NewSize(35, 70))
+	obj.StrokeWidth = 0
+	test.AssertImageMatches(t, "draw_ellipse_narrow.png", p.Paint(c))
+
+	obj.StrokeWidth = 4
+	test.AssertImageMatches(t, "draw_ellipse_narrow_stroke.png", p.Paint(c))
 }

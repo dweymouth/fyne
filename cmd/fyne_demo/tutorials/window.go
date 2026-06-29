@@ -11,7 +11,7 @@ import (
 
 func windowScreen(_ fyne.Window) fyne.CanvasObject {
 	var visibilityWindow fyne.Window = nil
-	var visibilityState bool = false
+	visibilityState := false
 
 	windowGroup := container.NewVBox(
 		widget.NewButton("New window", func() {
@@ -44,6 +44,16 @@ func windowScreen(_ fyne.Window) fyne.CanvasObject {
 			w.CenterOnScreen()
 			w.Show()
 		}),
+		widget.NewButton("Always on top window", func() {
+			w := fyne.CurrentApp().NewWindow("On Top")
+			w.SetContent(container.NewCenter(widget.NewLabel("Hello World!")))
+
+			deskWin, ok := w.(desktop.Window)
+			if ok {
+				deskWin.RequestAlwaysOnTop()
+			}
+			w.Show()
+		}),
 		widget.NewButton("Show/Hide window", func() {
 			if visibilityWindow == nil {
 				visibilityWindow = fyne.CurrentApp().NewWindow("Hello")
@@ -60,7 +70,8 @@ func windowScreen(_ fyne.Window) fyne.CanvasObject {
 				visibilityWindow.Show()
 			}
 			visibilityState = !visibilityState
-		}))
+		}),
+	)
 
 	drv := fyne.CurrentApp().Driver()
 	if drv, ok := drv.(desktop.Driver); ok {
@@ -78,12 +89,20 @@ func windowScreen(_ fyne.Window) fyne.CanvasObject {
 	}
 
 	otherGroup := widget.NewCard("Other", "",
-		widget.NewButton("Notification", func() {
-			fyne.CurrentApp().SendNotification(&fyne.Notification{
-				Title:   "Fyne Demo",
-				Content: "Testing notifications...",
-			})
-		}))
+		container.NewVBox(
+			widget.NewButton("Notification", func() {
+				fyne.CurrentApp().SendNotification(&fyne.Notification{
+					Title:   "Fyne Demo",
+					Content: "This is a notification",
+				})
+			}),
+			widget.NewButton("Notification in 30 sec", func() {
+				_, _ = fyne.CurrentApp().ScheduleNotification(&fyne.Notification{
+					Title:   "Fyne Demo",
+					Content: "A scheduled notification",
+				}, time.Now().Add(time.Second*30))
+			}),
+		))
 
 	return container.NewVBox(widget.NewCard("Windows", "", windowGroup), otherGroup)
 }

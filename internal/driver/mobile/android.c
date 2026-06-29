@@ -231,6 +231,18 @@ bool hasPrefix(char* string, char* prefix) {
 	return memcmp(prefix, string, lp) == 0;
 }
 
+bool isTreeURI(JNIEnv *env, jclass contractClass, jobject uri) {
+	jmethodID isTree = find_static_method(env, contractClass, "isTreeUri", "(Landroid/net/Uri;)Z");
+	jboolean tree = (*env)->CallStaticBooleanMethod(env, contractClass, isTree, uri);
+	return tree == JNI_TRUE;
+}
+
+bool isDocumentURI(JNIEnv *env, uintptr_t ctx, jclass contractClass, jobject uri) {
+	jmethodID isDocument = find_static_method(env, contractClass, "isDocumentUri", "(Landroid/content/Context;Landroid/net/Uri;)Z");
+	jboolean result = (*env)->CallStaticBooleanMethod(env, contractClass, isDocument, ctx, uri);
+	return result == JNI_TRUE;
+}
+
 bool canListContentURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 	JNIEnv *env = (JNIEnv*)jni_env;
 	jobject resolver = getContentResolver(jni_env, ctx);
@@ -246,18 +258,23 @@ bool canListContentURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 	if (contractClass == NULL) { // API 19
 		return false;
 	}
-	jmethodID getDoc = find_static_method(env, contractClass, "getTreeDocumentId", "(Landroid/net/Uri;)Ljava/lang/String;");
-	if (getDoc == NULL) { // API 21
-		return false;
-	}
-	jstring docID = (jobject)(*env)->CallStaticObjectMethod(env, contractClass, getDoc, uri);
 
-	jmethodID getTree = find_static_method(env, contractClass, "buildDocumentUriUsingTree", "(Landroid/net/Uri;Ljava/lang/String;)Landroid/net/Uri;");
-	jobject treeUri = (jobject)(*env)->CallStaticObjectMethod(env, contractClass, getTree, uri, docID);
+	bool tree = isTreeURI(env, contractClass, uri);
+	bool document = isDocumentURI(env, ctx, contractClass, uri);
+	if (tree && !document) {
+		jmethodID getDoc = find_static_method(env, contractClass, "getTreeDocumentId", "(Landroid/net/Uri;)Ljava/lang/String;");
+		if (getDoc == NULL) { // API 21
+			return false;
+		}
+		jstring docID = (jobject)(*env)->CallStaticObjectMethod(env, contractClass, getDoc, uri);
+
+		jmethodID getTree = find_static_method(env, contractClass, "buildDocumentUriUsingTree", "(Landroid/net/Uri;Ljava/lang/String;)Landroid/net/Uri;");
+		uri = (jobject)(*env)->CallStaticObjectMethod(env, contractClass, getTree, uri, docID);
+	}
 
 	jclass resolverClass = (*env)->GetObjectClass(env, resolver);
 	jmethodID getType = find_method(env, resolverClass, "getType", "(Landroid/net/Uri;)Ljava/lang/String;");
-	jstring type = (jstring)(*env)->CallObjectMethod(env, resolver, getType, treeUri);
+	jstring type = (jstring)(*env)->CallObjectMethod(env, resolver, getType, uri);
 
 	if (type == NULL) {
 		return false;
@@ -402,16 +419,23 @@ char* listContentURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 
 	if (loadErr != NULL) {
 		(*env)->ExceptionClear(env);
-		return "";
+		return "ERROR: Cannot parse URI";
 	}
 
 	jclass contractClass = find_class(env, "android/provider/DocumentsContract");
 	if (contractClass == NULL) { // API 19
-		return "";
+		return "ERROR: Cannot list content for URI";
 	}
-	jmethodID getDoc = find_static_method(env, contractClass, "getTreeDocumentId", "(Landroid/net/Uri;)Ljava/lang/String;");
+
+	bool tree = isTreeURI(env, contractClass, uri);
+	bool document = isDocumentURI(env, ctx, contractClass, uri);
+	char *methodName = "getDocumentId";
+	if (tree && !document) {
+		methodName = "getTreeDocumentId";
+	}
+	jmethodID getDoc = find_static_method(env, contractClass, methodName, "(Landroid/net/Uri;)Ljava/lang/String;");
 	if (getDoc == NULL) { // API 21
-		return "";
+		return "ERROR: Cannot list content for URI";
 	}
 	jstring docID = (jobject)(*env)->CallStaticObjectMethod(env, contractClass, getDoc, uri);
 
@@ -424,10 +448,19 @@ char* listContentURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 	jclass resolverClass = (*env)->GetObjectClass(env, resolver);
 	jmethodID query = find_method(env, resolverClass, "query", "(Landroid/net/Uri;[Ljava/lang/String;Landroid/os/Bundle;Landroid/os/CancellationSignal;)Landroid/database/Cursor;");
 	if (getDoc == NULL) { // API 26
-		return "";
+		return "ERROR: Cannot list content for URI";
 	}
 
 	jobject cursor = (jobject)(*env)->CallObjectMethod(env, resolver, query, childrenUri, project, NULL, NULL);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+		LOG_FATAL("cannot list content of uri: %s", uriCstr);
+		return "ERROR: Cannot list content for URI";
+	}
+	if (cursor == NULL) {
+		return "ERROR: Cannot list content for URI (NULL cursor)";
+	}
 	jclass cursorClass = (*env)->GetObjectClass(env, cursor);
 	jmethodID next = find_method(env, cursorClass, "moveToNext", "()Z");
 	jmethodID get = find_method(env, cursorClass, "getString", "(I)Ljava/lang/String;");
@@ -520,7 +553,7 @@ char* listURI(uintptr_t jni_env, uintptr_t ctx, char* uriCstr) {
 		return listContentURI(jni_env, ctx, uriCstr);
 	}
 	LOG_FATAL("Unrecognized scheme: %s", uriCstr);
-	return "";
+	return "ERROR: Unrecognized scheme";
 }
 
 void keepScreenOn(uintptr_t jni_env, uintptr_t ctx, bool disabled) {

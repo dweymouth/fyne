@@ -45,7 +45,10 @@ const (
 	ButtonIconTrailingText
 )
 
-var _ fyne.Focusable = (*Button)(nil)
+var (
+	_ fyne.Focusable  = (*Button)(nil)
+	_ fyne.Accessible = (*Button)(nil)
+)
 
 // Button widget has a text label and triggers an event func when clicked
 type Button struct {
@@ -63,6 +66,7 @@ type Button struct {
 
 	hovered, focused bool
 	tapAnim          *fyne.Animation
+	isAnimating      bool
 }
 
 // NewButton creates a new button widget with the set label and tap handler
@@ -88,6 +92,24 @@ func NewButtonWithIcon(label string, icon fyne.Resource, tapped func()) *Button 
 	return button
 }
 
+// AccessibilityLabel for a button is the text, if there is some, otherwise the name of the icon.
+//
+// Since: 2.8
+func (b *Button) AccessibilityLabel() string {
+	if b.Text != "" {
+		return b.Text
+	}
+
+	return b.Icon.Name()
+}
+
+// AccessibilityRole for a button is fyne.AccessibleRoleButton.
+//
+// Since: 2.8
+func (b *Button) AccessibilityRole() fyne.AccessibleRole {
+	return fyne.AccessibleRoleButton
+}
+
 // CreateRenderer is a private method to Fyne which links this widget to its renderer
 func (b *Button) CreateRenderer() fyne.WidgetRenderer {
 	b.ExtendBaseWidget(b)
@@ -100,7 +122,7 @@ func (b *Button) CreateRenderer() fyne.WidgetRenderer {
 	text.inset = fyne.NewSquareSize(th.Size(theme.SizeNameInnerPadding))
 
 	background := canvas.NewRectangle(th.Color(theme.ColorNameButton, v))
-	background.CornerRadius = th.Size(theme.SizeNameInputRadius)
+	background.CornerRadius = th.Size(theme.SizeNameButtonRadius)
 	tapBG := canvas.NewRectangle(color.Transparent)
 	b.tapAnim = newButtonTapAnimation(tapBG, b, th)
 	b.tapAnim.Curve = fyne.AnimationEaseOut
@@ -209,8 +231,10 @@ func (b *Button) tapAnimation() {
 		return
 	}
 	b.tapAnim.Stop()
+	b.isAnimating = false
 
 	if fyne.CurrentApp().Settings().ShowAnimations() {
+		b.isAnimating = true
 		b.tapAnim.Start()
 	}
 }
@@ -229,7 +253,10 @@ type buttonRenderer struct {
 // Layout the components of the button widget
 func (r *buttonRenderer) Layout(size fyne.Size) {
 	r.background.Resize(size)
-	r.tapBG.Resize(size)
+	if !r.button.isAnimating {
+		// if we are animating let the animation control the tapBG size
+		r.tapBG.Resize(size)
+	}
 
 	th := r.button.Theme()
 	padding := r.padding(th)
@@ -321,7 +348,7 @@ func (r *buttonRenderer) applyTheme() {
 			bgColor = blendColor(bgColor, th.Color(bgBlendName, v))
 		}
 		bg.FillColor = bgColor
-		bg.CornerRadius = th.Size(theme.SizeNameInputRadius)
+		bg.CornerRadius = th.Size(theme.SizeNameButtonRadius)
 		bg.Refresh()
 	}
 
@@ -427,16 +454,16 @@ func blendColor(under, over color.Color) color.Color {
 	// This alpha blends with the over operator, and accounts for RGBA() returning alpha-premultiplied values
 	dstR, dstG, dstB, dstA := under.RGBA()
 	srcR, srcG, srcB, srcA := over.RGBA()
-
-	srcAlpha := float32(srcA) / 0xFFFF
-	dstAlpha := float32(dstA) / 0xFFFF
-
-	outAlpha := srcAlpha + dstAlpha*(1-srcAlpha)
-	outR := srcR + uint32(float32(dstR)*(1-srcAlpha))
-	outG := srcG + uint32(float32(dstG)*(1-srcAlpha))
-	outB := srcB + uint32(float32(dstB)*(1-srcAlpha))
+	blend := func(src, dst, alpha uint32) uint16 {
+		return uint16((src + dst - (dst * alpha / 0xFFFF)) & 0xFFFF)
+	}
 	// We create an RGBA64 here because the color components are already alpha-premultiplied 16-bit values (they're just stored in uint32s).
-	return color.RGBA64{R: uint16(outR), G: uint16(outG), B: uint16(outB), A: uint16(outAlpha * 0xFFFF)}
+	return color.RGBA64{
+		R: blend(srcR, dstR, srcA),
+		G: blend(srcG, dstG, srcA),
+		B: blend(srcB, dstB, srcA),
+		A: blend(srcA, dstA, srcA),
+	}
 }
 
 func newButtonTapAnimation(bg *canvas.Rectangle, w fyne.Widget, th fyne.Theme) *fyne.Animation {
@@ -447,14 +474,18 @@ func newButtonTapAnimation(bg *canvas.Rectangle, w fyne.Widget, th fyne.Theme) *
 		bg.Resize(fyne.NewSize(size*2, w.Size().Height))
 		bg.Move(fyne.NewPos(mid-size, 0))
 
-		r, g, bb, a := col.ToNRGBA(th.Color(theme.ColorNamePressed, v))
-		aa := uint8(a)
-		fade := aa - uint8(float32(aa)*done)
+		r, g, b, a := col.ToNRGBA(th.Color(theme.ColorNamePressed, v))
+		fade := a - uint8(float32(a)*done)
 		if fade > 0 {
-			bg.FillColor = &color.NRGBA{R: uint8(r), G: uint8(g), B: uint8(bb), A: fade}
+			bg.FillColor = &color.NRGBA{R: r, G: g, B: b, A: fade}
 		} else {
 			bg.FillColor = color.Transparent
 		}
 		canvas.Refresh(bg)
+		if done == 1.0 {
+			if btn, ok := w.(*Button); ok {
+				btn.isAnimating = false
+			}
+		}
 	})
 }

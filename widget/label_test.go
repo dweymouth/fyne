@@ -225,6 +225,9 @@ func TestLabel_Select(t *testing.T) {
 	sel.TypedShortcut(&fyne.ShortcutCopy{})
 	assert.Equal(t, "el", fyne.CurrentApp().Clipboard().Content())
 
+	l.SetText("World")
+	assert.Equal(t, "", l.SelectedText())
+
 	l.Selectable = false
 	l.Refresh()
 	assert.Equal(t, 1, len(test.WidgetRenderer(l).Objects()))

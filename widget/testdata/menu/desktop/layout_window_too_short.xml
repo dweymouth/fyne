@@ -3,21 +3,11 @@
 		<rectangle size="100x50"/>
 	</content>
 	<overlay>
-		<widget pos="2,3" size="96x45" type="*widget.OverlayContainer">
-			<widget pos="10,10" size="66x35" type="*widget.Menu">
-				<widget size="66x35" type="*widget.Shadow">
-					<radialGradient centerOffset="0.5,0.5" pos="-3,-2" size="4x4" startColor="shadow"/>
-					<linearGradient endColor="shadow" pos="0,-2" size="64x4"/>
-					<radialGradient centerOffset="-0.5,0.5" pos="65,-2" size="4x4" startColor="shadow"/>
-					<linearGradient angle="270" pos="65,1" size="4x33" startColor="shadow"/>
-					<radialGradient centerOffset="-0.5,-0.5" pos="65,35" size="4x4" startColor="shadow"/>
-					<linearGradient pos="0,35" size="64x4" startColor="shadow"/>
-					<radialGradient centerOffset="0.5,-0.5" pos="-3,35" size="4x4" startColor="shadow"/>
-					<linearGradient angle="270" endColor="shadow" pos="-3,1" size="4x33"/>
-				</widget>
-				<widget size="66x35" type="*widget.Scroll">
+		<widget size="100x50" type="*widget.OverlayContainer">
+			<widget pos="10,10" size="66x40" type="*widget.Menu">
+				<rectangle fillColor="menuBackground" radius="4" shadowBlurRadius="6" shadowColor="shadow" shadowOffset="0,2" size="66x40"/>
+				<widget size="66x40" type="*widget.Scroll">
 					<widget size="66x162" type="*widget.menuBox">
-						<rectangle fillColor="menuBackground" size="66x162"/>
 						<container size="66x162">
 							<widget size="66x35" type="*widget.menuItem">
 								<text pos="8,8" size="50x19">A</text>
@@ -41,10 +31,10 @@
 							</widget>
 						</container>
 					</widget>
-					<widget pos="0,35" size="66x0" type="*widget.Shadow">
+					<widget pos="0,40" size="66x0" type="*widget.Shadow">
 						<linearGradient endColor="shadow" pos="0,-8" size="66x8"/>
 					</widget>
-					<widget pos="60,0" size="6x35" type="*widget.scrollBarArea">
+					<widget pos="60,0" size="6x40" type="*widget.scrollBarArea">
 						<widget pos="3,0" size="3x16" type="*widget.scrollBar">
 							<rectangle fillColor="scrollbar" radius="3" size="3x16"/>
 						</widget>

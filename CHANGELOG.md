@@ -3,6 +3,102 @@
 This file lists the main changes with each version of the Fyne toolkit.
 More detailed release notes can be found on the [releases page](https://github.com/fyne-io/fyne/releases). 
 
+## 2.8.0 - 5 Jul 2026
+
+### Added
+
+* New canvas objects: ArbitraryPolygon, BezierCurve, Blur, Ellipse & Shader (and NewShaderAnimation)
+* Hardware accelerated shadow support for various canvas elements
+* Add scheduled notifications API
+* Adding Required support to FormItem and Validation to Form
+* New RichText types and Markdown support to load tables, checkboxes & strikethrough
+* Adding accessibility support (currently off by default, use -tags accessibility to test)
+* New support for working with secondary monitors (for fullscreen additional content)
+* Add new Cache API for temporary resources, and new CacheResourceFromURLString helper
+* Add more requests to desktop Window - Always on Top and Position
+* Support for multi-touch drag reporting in mobile driver
+* Added APIs for window stacking of internal windows
+* Support for underline and strikethrough text
+* Add HighlightItem API to collection widgets
+* Secondary cut/copy/paste shortcuts for Unix systems
+* New sizes and colors in theme to support features
+
+### Changed
+
+* Wayland is now supported by default and will automatically be picked at runtime
+* Circle canvas object is now always a circle filling centrally in the space
+* Canvas Polygon renamed to RegularPolygon
+* Follow macOS system setting for scroll bar visibility
+* Handle nested lists and quotes in Markdown renderer
+* Upgrades to RichText rendering and performance including clearer code blocks
+* Apps that have not migrated to the fyne.Do thread handling will warn on app launch
+
+### Fixed
+
+* Increase thread warnings for 2.8 release prep (#6255)
+* Open tree branches when scrolling
+* Fix the Android status bar theming (#1442)
+* Android: Fix canListContentURI (#6119)
+* Fix strange wrapping which results in one char per line (#4303)
+* Android: Allow listContentURI to list content of a subfolder
+* Fix issue with window placement and fullscreen for macOS 26
+* Markdown: Support nested block quotes (#6311, #6297)
+* Clarify the size / resize and position of popups. (#6290)
+* show a static ellipsis on Activity when animations are disabled (#5252)
+* Mobile: Don't let horizontally draggable block vertical dragging (#6158)
+* Reset label selection on text change (#6277)
+* lang: avoid resolving unrelated languages by script similarity (#6176)
+* fix animation progress when duration changes mid-run (#5970
+* Prevent multiline Entry long lines from rendering as black boxes (#678)
+
+**And over 150 other fixes and performance improvements!**
+
+
+## 2.7.4 - 12 May 2026
+
+### Fixed
+
+* SIGSEGV in glfwPollEvents after SetMainMenu rebuild with separator items (macOS) (#6264)
+* Rasters created from NewRasterFromImage unexpectedly stretches the image (#6242)
+* Infinite Progress Bar widget will not automatically start until a Refresh() or Start() is called (#6221)
+* TextGrid: MinSize do not work when line number is visible (#6218)
+* InnerWindow drags past MultiWindows border (#6210)
+* Layout issue with fyne.TextWordWrap (#6181)
+* Hangul (Korean) text renders as U+FFFD (�) on Windows in v2.7 (#6146)
+* Android: storage.List(uri) call results in crash when permission has expired (#6117)
+* Fix strange wrapping which results in one char per line
+* Unexpected fyne.Do errors on android (#5664)
+* Local function is not call on the main Fyne runtime on mobile (#5868)
+* Fix Wide Character's width calculation in TextGrid
+* Various system tray fixes
+* Speed improvement in rendering scrolled text
+* Support OpenURL in mobile simulator
+* When using local metadata for go run also check Icon.png
+
+
+## 2.7.3 - 21 Feb 2026
+
+### Fixed
+
+* systray not functional within snap sandbox (systray#64)
+* A dialog with a table. Selecting a cell and closing the dialog produces a Fyne error (#5166)
+* Fix JNI crash due to invalid global reference when accessing Android file streams (#6067)
+* Low frame rate with animated rectangles on 2.7.x (#6040)
+* Random panic when launching the app (#5981)
+* Tree Widget constantly calls IsBranch and ChildrenUIs (#4339)
+* Font scanning fails in Flatpak due to broken symlinks
+* Correct system tray icon on Linux when using SVG
+* Button press animation sometimes leaks outside the bounds of the button (#6096)
+* SVG cannot be loaded if it has currentColor at root element (#6102)
+* Wrapped text is rendered poorly (blurred) (#4390)
+* Blurry text in mobile Linux (#2280)
+* On 2.3.0 text is fuzzy (#3464)
+* Correct presentation of HTML entities when using markdown in RichText
+* Accordion kills CPU by inefficient MinSize implementation (#6108)
+* Tree with no data (with Accordion?) - triggers endless layout loop (#6094)
+* NewRichTextFromMarkdown can't handle nested lists (#6113)
+
+
 ## 2.7.2 - 6 Jan 2026
 
 ### Changed

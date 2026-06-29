@@ -25,22 +25,32 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
-          go-version-file: "go.mod"
+          go-version-file: ${{ matrix.go-version == '' && 'go.mod' || '' }}
 
       - name: Get dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends bc clang lld libgl1-mesa-dev libwayland-dev libx11-dev libxkbcommon-dev xorg-dev xvfb language-pack-en
+          sudo apt-get install --no-install-recommends bc clang lld libgl1-mesa-dev libwayland-dev libx11-dev libxkbcommon-dev xorg-dev xvfb language-pack-en fonts-noto-cjk
           echo "CC=clang" >> "$GITHUB_ENV"
           echo "CGO_LDFLAGS=-fuse-ld=lld" >> "$GITHUB_ENV"
         if: ${{ runner.os == 'Linux' }}
 
       - name: Set environment variable LANG
-        run: export LANG=en_EN.UTF-8
+        run: echo "LANG=en_US.UTF-8" >> $GITHUB_ENV
         if: ${{ runner.os == 'Linux' }}
 
       - name: Tests
         run: ${{ matrix.runner }} go test -race -tags "${{ matrix.tags }}" -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Upload failed testdata
+        uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: failed-testdata-${{ matrix.os }}-${{ matrix.go-version }}
+          path: |
+            **/testdata/failed
+          retention-days: 1
+          if-no-files-found: ignore
 
       - name: Wayland Tests
         run: go test -race -tags no_glfw,ci,wayland ./...
@@ -69,9 +79,19 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
 
       - name: Tests
         run: ${{ matrix.runner }} go test -race -tags no_glfw,migrated_fynedo ./...
+
+      - name: Upload failed testdata
+        uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: failed-testdata-windows-${{ matrix.go-version }}
+          path: |
+            **/testdata/failed
+          retention-days: 1
+          if-no-files-found: ignore

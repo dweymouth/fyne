@@ -39,7 +39,7 @@ func (w *window) SetTitle(title string) {
 }
 
 func (w *window) FullScreen() bool {
-	return w.fullScreen
+	return w.fullScreen || w.fullScreenSecondary
 }
 
 // minSizeOnScreen gets the padded minimum size of a window content in screen pixels
@@ -54,7 +54,7 @@ func (w *window) screenSize(canvasSize fyne.Size) (int, int) {
 }
 
 func (w *window) Resize(size fyne.Size) {
-	w.canvas.size = size
+	w.canvas.Resize(size)
 	// we cannot perform this until window is prepared as we don't know its scale!
 	bigEnough := size.Max(w.canvas.canvasSize(w.canvas.Content().MinSize()))
 	w.runOnMainWhenCreated(func() {
@@ -164,8 +164,12 @@ func (w *window) Show() {
 			w.xpos, w.ypos = view.GetPos()
 		}
 
-		if w.fullScreen { // this does not work if called before viewport.Show()
-			w.doSetFullScreen(true)
+		if w.fullScreenSecondary {
+			w.doSetFullScreen2(true)
+		} else {
+			if w.fullScreen { // this does not work if called before viewport.Show()
+				w.doSetFullScreen(true)
+			}
 		}
 
 		// show top canvas element
@@ -173,6 +177,8 @@ func (w *window) Show() {
 			w.RunWithContext(func() {
 				w.driver.repaintWindow(w)
 			})
+			// Update accessibility tree
+			w.updateAccessibility()
 		}
 	})
 }
@@ -199,6 +205,9 @@ func (w *window) Close() {
 			w.onClosed = nil // avoid possibility of calling twice
 			fn()
 		}
+
+		// Clean up accessibility resources
+		w.cleanupAccessibilityForWindow()
 
 		w.closing = true
 		w.viewport.SetShouldClose(true)
@@ -231,6 +240,8 @@ func (w *window) SetContent(content fyne.CanvasObject) {
 
 	async.EnsureMain(func() {
 		w.RunWithContext(w.RescaleContext)
+		// Update accessibility tree when content changes
+		w.updateAccessibility()
 	})
 }
 
@@ -546,7 +557,20 @@ func (w *window) processMouseClicked(button desktop.MouseButton, action action, 
 			w.mousePressed = co
 		case release:
 			if co == mousePressed && button == desktop.MouseButtonSecondary && altTap {
+				prevOverlay := w.canvas.Overlays().Top()
 				secondary.TappedSecondary(ev)
+
+				// if the secondary tap dismissed an overlay, forward the event to the widget underneath
+				if prevOverlay != nil && w.canvas.Overlays().Top() != prevOverlay {
+					co2, pos2, _ := w.findObjectAtPositionMatching(w.canvas, mousePos, func(object fyne.CanvasObject) bool {
+						_, ok := object.(fyne.SecondaryTappable)
+						return ok
+					})
+					if sec2, ok := co2.(fyne.SecondaryTappable); ok {
+						ev2 := &fyne.PointEvent{Position: pos2, AbsolutePosition: mousePos}
+						sec2.TappedSecondary(ev2)
+					}
+				}
 			}
 		}
 	}
@@ -984,8 +1008,12 @@ func (w *window) doShowAgain() {
 	view.Show()
 	w.visible = true
 
-	if w.fullScreen {
-		w.doSetFullScreen(true)
+	if w.fullScreenSecondary {
+		w.doSetFullScreen2(true)
+	} else {
+		if w.fullScreen {
+			w.doSetFullScreen(true)
+		}
 	}
 
 	w.RunWithContext(func() {

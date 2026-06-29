@@ -76,16 +76,31 @@ func advancedScreen(win fyne.Window) fyne.CanvasObject {
 	}
 	labelBuildStatus := widget.NewLabel(buildStatus)
 
+	deskWin, ok := win.(desktop.Window)
+	secondary := widget.NewButton("Fullscreen Secondary", func() {
+		if win.FullScreen() {
+			win.SetFullScreen(false)
+		} else if ok {
+			deskWin.RequestFullScreenSecondary()
+		}
+	})
+	if !ok || !fyne.CurrentApp().Driver().(desktop.Driver).HasSecondaryDisplay() {
+		secondary.Disable()
+	}
+
 	return container.NewHBox(
-		container.NewVBox(screen,
+		container.NewVBox(
+			screen,
 			widget.NewButton("Custom Theme", func() {
 				fyne.CurrentApp().Settings().SetTheme(newCustomTheme())
 			}),
 			widget.NewButton("Fullscreen", func() {
 				win.SetFullScreen(!win.FullScreen())
 			}),
+			secondary,
 		),
-		container.NewBorder(label, labelBuildStatus, nil, nil,
+		container.NewBorder(
+			label, labelBuildStatus, nil, nil,
 			container.NewGridWithColumns(2, genericCard, deskCard),
 		),
 	)

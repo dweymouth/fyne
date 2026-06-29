@@ -145,7 +145,7 @@ func TestTextGrid_CreateRendererRows(t *testing.T) {
 	grid.Resize(fyne.NewSize(52, 22))
 	wrap := test.TempWidgetRenderer(t, grid).(*textGridRenderer).text
 	row := wrap.visible[0].(*textGridRow)
-	assert.Len(t, row.objects, 18)
+	assert.Len(t, row.objects, 12)
 }
 
 func TestTextGrid_Row(t *testing.T) {
@@ -196,7 +196,7 @@ func TestTextGrid_SetText_Overflow(t *testing.T) {
 	row1 := content.visible[1].(*textGridRow)
 	row2 := content.visible[2].(*textGridRow)
 	assert.Equal(t, "H", row0.objects[1].(*canvas.Text).Text)
-	assert.Equal(t, "g", row0.objects[28].(*canvas.Text).Text)
+	assert.Equal(t, "g", row0.objects[19].(*canvas.Text).Text)
 	assert.Equal(t, "t", row1.objects[1].(*canvas.Text).Text)
 	assert.Equal(t, " ", row2.objects[1].(*canvas.Text).Text)
 
@@ -207,7 +207,7 @@ func TestTextGrid_SetText_Overflow(t *testing.T) {
 	assert.Len(t, grid.Rows[0].Cells, 7)
 
 	assert.Equal(t, "R", row0.objects[1].(*canvas.Text).Text)
-	assert.Equal(t, " ", row0.objects[28].(*canvas.Text).Text)
+	assert.Equal(t, " ", row0.objects[19].(*canvas.Text).Text)
 	assert.Equal(t, " ", row1.objects[1].(*canvas.Text).Text)
 }
 
@@ -274,6 +274,17 @@ func TestTextGrid_Text(t *testing.T) {
 	assert.Equal(t, input, grid.Text())
 }
 
+func TestTextGrid_Size(t *testing.T) {
+	grid := NewTextGrid()
+	singleWidthRunes := []rune{'a', 'b', 'c'}
+	doubleWidthRunes := []rune{'一', '二', '三'}
+	grid.SetText(string(append(singleWidthRunes, doubleWidthRunes...)))
+	grid.Resize(grid.MinSize())
+	size := grid.content.cellSize
+	size.Width *= float32(len(singleWidthRunes) + 2*len(doubleWidthRunes))
+	assert.Equal(t, size, grid.Size())
+}
+
 func TestTextGridRenderer_Resize(t *testing.T) {
 	grid := NewTextGridFromString("1\n2")
 	grid.ShowLineNumbers = true
@@ -283,6 +294,31 @@ func TestTextGridRenderer_Resize(t *testing.T) {
 
 	grid.Resize(fyne.NewSize(100, 250))
 	assert.Equal(t, min, renderer.MinSize())
+}
+
+func TestTextGridRenderer_MinSize(t *testing.T) {
+	grid := NewTextGridFromString("ABC")
+	grid.ShowLineNumbers = false
+	renderer := test.TempWidgetRenderer(t, grid)
+
+	grid.Refresh()
+	assert.Equal(t, fyne.NewSize(24, 16), renderer.MinSize())
+
+	grid.ShowLineNumbers = true
+	grid.Refresh()
+	assert.Equal(t, fyne.NewSize(40, 16), renderer.MinSize())
+
+	grid.SetCell(8, 0, TextGridCell{Rune: 'A'})
+	grid.Refresh()
+	assert.Equal(t, fyne.NewSize(40, 144), renderer.MinSize())
+
+	grid.SetCell(10, 0, TextGridCell{Rune: 'B'})
+	grid.Refresh()
+	assert.Equal(t, fyne.NewSize(48, 176), renderer.MinSize())
+
+	grid.SetCell(5, 20, TextGridCell{Rune: 'C'})
+	grid.Refresh()
+	assert.Equal(t, fyne.NewSize(192, 176), renderer.MinSize())
 }
 
 func TestTextGridRenderer_ShowLineNumbers(t *testing.T) {
@@ -451,6 +487,6 @@ func assertGridStyle(t *testing.T, g *TextGrid, content string, expectedStyles m
 }
 
 func rendererCell(r *textGridRowRenderer, col int) (*canvas.Rectangle, *canvas.Text) {
-	i := col * 3
+	i := col * 2
 	return r.obj.objects[i].(*canvas.Rectangle), r.obj.objects[i+1].(*canvas.Text)
 }

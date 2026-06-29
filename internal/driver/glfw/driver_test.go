@@ -58,6 +58,7 @@ func Test_gLDriver_AbsolutePositionForObject(t *testing.T) {
 	runOnMain(func() {
 		size = ovlContent.Size()
 	})
+	// TODO modal content zero not minsize
 	assert.InDelta(t, 112, size.Width, 1)
 	assert.InDelta(t, 113, size.Height, 1)
 
@@ -70,7 +71,7 @@ func Test_gLDriver_AbsolutePositionForObject(t *testing.T) {
 	// 3 is the container holding the items
 	var m2 fyne.CanvasObject
 	runOnMain(func() {
-		mbarCont := cache.Renderer(movl.(fyne.Widget)).Objects()[3].(*fyne.Container)
+		mbarCont := cache.Renderer(movl.(fyne.Widget)).Objects()[2].(*fyne.Container)
 		m2 = mbarCont.Objects[1]
 	})
 
@@ -116,7 +117,7 @@ func Test_gLDriver_AbsolutePositionForObject(t *testing.T) {
 			wantY:  43,
 		},
 		"the overlay": {
-			object: ovl,
+			object: w.window.Canvas().Overlays().Top(),
 			wantX:  0,
 			wantY:  0,
 		},
