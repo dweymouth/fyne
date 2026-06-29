@@ -44,6 +44,11 @@ type Canvas interface {
 	AddShortcut(shortcut Shortcut, handler func(shortcut Shortcut))
 	RemoveShortcut(shortcut Shortcut)
 
+	// SetOnMouseBack is a Supersonic-specific extension
+	SetOnMouseBack(func())
+	// SetOnMouseForward is a Supersonic-specific extension
+	SetOnMouseForward(func())
+
 	Capture() image.Image
 
 	// PixelCoordinateForPosition returns the x and y pixel coordinate for a given position on this canvas.
