@@ -27,7 +27,8 @@ func BindPreferenceBool(key string, p fyne.Preferences) Bool {
 //
 // Since: 2.6
 func BindPreferenceBoolList(key string, p fyne.Preferences) BoolList {
-	return bindPreferenceListComparable(key, p,
+	return bindPreferenceListComparable(
+		key, p,
 		func(p fyne.Preferences) (func(string) []bool, func(string, []bool)) {
 			return p.BoolList, p.SetBoolList
 		},
@@ -50,7 +51,8 @@ func BindPreferenceFloat(key string, p fyne.Preferences) Float {
 //
 // Since: 2.6
 func BindPreferenceFloatList(key string, p fyne.Preferences) FloatList {
-	return bindPreferenceListComparable(key, p,
+	return bindPreferenceListComparable(
+		key, p,
 		func(p fyne.Preferences) (func(string) []float64, func(string, []float64)) {
 			return p.FloatList, p.SetFloatList
 		},
@@ -73,7 +75,8 @@ func BindPreferenceInt(key string, p fyne.Preferences) Int {
 //
 // Since: 2.6
 func BindPreferenceIntList(key string, p fyne.Preferences) IntList {
-	return bindPreferenceListComparable(key, p,
+	return bindPreferenceListComparable(
+		key, p,
 		func(p fyne.Preferences) (func(string) []int, func(string, []int)) {
 			return p.IntList, p.SetIntList
 		},
@@ -96,7 +99,8 @@ func BindPreferenceString(key string, p fyne.Preferences) String {
 //
 // Since: 2.6
 func BindPreferenceStringList(key string, p fyne.Preferences) StringList {
-	return bindPreferenceListComparable(key, p,
+	return bindPreferenceListComparable(
+		key, p,
 		func(p fyne.Preferences) (func(string) []string, func(string, []string)) {
 			return p.StringList, p.SetStringList
 		},
@@ -197,7 +201,9 @@ func (b *prefBoundList[T]) checkForChange() {
 	val := *b.val
 	updated := b.get(b.key)
 	if val == nil || len(updated) != len(val) {
-		b.Set(updated)
+		// #Set’s error comes via #doReload from *boundExternalListItem#setIfChanged or *boundListItem#doSet
+		// which both never return an error.
+		_ = b.Set(updated)
 		return
 	}
 
@@ -232,7 +238,7 @@ func bindPreferenceListComparable[T bool | float64 | int | string](key string, p
 	items := listen.get(listen.key)
 	listen.boundList = *bindList(nil, func(t1, t2 T) bool { return t1 == t2 })
 
-	listen.boundList.AddListener(NewDataListener(func() {
+	listen.AddListener(NewDataListener(func() {
 		cached := *listen.val
 		replaced := listen.get(listen.key)
 		if len(cached) == len(replaced) {
@@ -243,7 +249,7 @@ func bindPreferenceListComparable[T bool | float64 | int | string](key string, p
 		listen.trigger()
 	}))
 
-	listen.boundList.parentListener = func(index int) {
+	listen.parentListener = func(index int) {
 		listen.set(listen.key, *listen.val)
 
 		// the child changes are not seen on the write end so force it
@@ -251,7 +257,9 @@ func bindPreferenceListComparable[T bool | float64 | int | string](key string, p
 			prefs.WriteValues(func(map[string]any) {})
 		}
 	}
-	listen.boundList.Set(items)
+	// #Set’s error comes via #doReload from *boundExternalListItem#setIfChanged or *boundListItem#doSet
+	// which both never return an error.
+	_ = listen.Set(items)
 
 	binds := prefBinds.ensurePreferencesAttached(p)
 	binds.Store(key, listen)

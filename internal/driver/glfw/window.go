@@ -177,6 +177,8 @@ func (w *window) Show() {
 			w.RunWithContext(func() {
 				w.driver.repaintWindow(w)
 			})
+			// Update accessibility tree
+			w.updateAccessibility()
 		}
 	})
 }
@@ -203,6 +205,9 @@ func (w *window) Close() {
 			w.onClosed = nil // avoid possibility of calling twice
 			fn()
 		}
+
+		// Clean up accessibility resources
+		w.cleanupAccessibilityForWindow()
 
 		w.closing = true
 		w.viewport.SetShouldClose(true)
@@ -235,6 +240,8 @@ func (w *window) SetContent(content fyne.CanvasObject) {
 
 	async.EnsureMain(func() {
 		w.RunWithContext(w.RescaleContext)
+		// Update accessibility tree when content changes
+		w.updateAccessibility()
 	})
 }
 
@@ -254,6 +261,7 @@ func (w *window) processClosed() {
 // destroy this window and, if it's the last window quit the app
 func (w *window) destroy(d *gLDriver) {
 	cache.CleanCanvas(w.canvas)
+	w.frame.free()
 
 	if w.master {
 		d.Quit()
@@ -538,7 +546,20 @@ func (w *window) processMouseClicked(button desktop.MouseButton, action action, 
 			w.mousePressed = co
 		case release:
 			if co == mousePressed && button == desktop.MouseButtonSecondary && altTap {
+				prevOverlay := w.canvas.Overlays().Top()
 				secondary.TappedSecondary(ev)
+
+				// if the secondary tap dismissed an overlay, forward the event to the widget underneath
+				if prevOverlay != nil && w.canvas.Overlays().Top() != prevOverlay {
+					co2, pos2, _ := w.findObjectAtPositionMatching(w.canvas, mousePos, func(object fyne.CanvasObject) bool {
+						_, ok := object.(fyne.SecondaryTappable)
+						return ok
+					})
+					if sec2, ok := co2.(fyne.SecondaryTappable); ok {
+						ev2 := &fyne.PointEvent{Position: pos2, AbsolutePosition: mousePos}
+						sec2.TappedSecondary(ev2)
+					}
+				}
 			}
 		}
 	}
@@ -746,6 +767,11 @@ func (w *window) processFocused(focus bool) {
 		}
 		curWindow = w
 		w.canvas.FocusGained()
+
+		if build.IsWayland {
+			w.frame.markReady()
+			w.canvas.SetDirty()
+		}
 	} else {
 		w.canvas.FocusLost()
 		w.mousePos = fyne.Position{}
@@ -957,6 +983,7 @@ func (d *gLDriver) createWindow(title string, decorate bool) fyne.Window {
 	d.init()
 
 	ret = &window{title: title, decorate: decorate, driver: d}
+	ret.frame = newPresentGate(ret)
 	ret.canvas = newCanvas()
 	ret.canvas.context = ret
 	ret.SetIcon(ret.icon)

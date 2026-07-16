@@ -1,6 +1,10 @@
 package theme
 
-import "fyne.io/fyne/v2"
+import (
+	"math"
+
+	"fyne.io/fyne/v2"
+)
 
 const (
 	// SizeNameCaptionText is the name of theme lookup for helper text size, normally smaller than regular text size.
@@ -17,6 +21,11 @@ const (
 	//
 	// Since: 2.3
 	SizeNameInnerPadding fyne.ThemeSizeName = "innerPadding"
+
+	// SizeNameInnerWindowRadius is the name of theme lookup for inner window corner radius.
+	//
+	// Since: 2.8
+	SizeNameInnerWindowRadius fyne.ThemeSizeName = "innerWindowRadius"
 
 	// SizeNameLineSpacing is the name of theme lookup for between text line spacing.
 	//
@@ -42,6 +51,11 @@ const (
 	//
 	// Since: 2.0
 	SizeNameSeparatorThickness fyne.ThemeSizeName = "separator"
+
+	// SizeNameSplitThickness is the name of theme lookup for the thickness of a split divider.
+	//
+	// Since: 2.8
+	SizeNameSplitThickness fyne.ThemeSizeName = "split"
 
 	// SizeNameText is the name of theme lookup for text size.
 	//
@@ -70,7 +84,7 @@ const (
 
 	// SizeNameModalBlurRadius is the name of theme lookup for blurring modal popup backgrounds.
 	//
-	// Since: 2.7
+	// Since: 2.8
 	SizeNameModalBlurRadius fyne.ThemeSizeName = "modalBlurRadius"
 
 	// SizeNameSelectionRadius is the name of theme lookup for selection corner radius.
@@ -102,6 +116,31 @@ const (
 	//
 	// Since: 2.6
 	SizeNameWindowTitleBarHeight fyne.ThemeSizeName = "windowTitleBarHeight"
+
+	// SizeNameButtonRadius is the name of theme lookup for button corner radius.
+	//
+	// Since: 2.8
+	SizeNameButtonRadius fyne.ThemeSizeName = "buttonRadius"
+
+	// SizeNameCardRadius is the name of theme lookup for card widget corner radius.
+	//
+	// Since: 2.8
+	SizeNameCardRadius fyne.ThemeSizeName = "cardRadius"
+
+	// SizeNameDialogRadius is the name of theme lookup for dialog and modal popup corner radius.
+	//
+	// Since: 2.8
+	SizeNameDialogRadius fyne.ThemeSizeName = "dialogRadius"
+
+	// SizeNamePopupRadius is the name of theme lookup for popup corner radius.
+	//
+	// Since: 2.8
+	SizeNamePopupRadius fyne.ThemeSizeName = "popupRadius"
+
+	// SizeNameMenuRadius is the name of theme lookup for menu corner radius.
+	//
+	// Since: 2.8
+	SizeNameMenuRadius fyne.ThemeSizeName = "menuRadius"
 )
 
 // CaptionTextSize returns the size for caption text.
@@ -229,9 +268,13 @@ func (t *builtinTheme) Size(s fyne.ThemeSizeName) float32 {
 		return 18
 	case SizeNameCaptionText:
 		return 11
+	case SizeNameInnerWindowRadius:
+		return 5
 	case SizeNameInputBorder:
 		return 1
 	case SizeNameInputRadius:
+		return 5
+	case SizeNameButtonRadius:
 		return 5
 	case SizeNameModalBlurRadius:
 		return 1.5
@@ -242,11 +285,19 @@ func (t *builtinTheme) Size(s fyne.ThemeSizeName) float32 {
 	case SizeNameWindowButtonHeight:
 		return 16
 	case SizeNameWindowButtonRadius:
-		return 8
+		return math.MaxFloat32 // MaxRadius without the import loop
 	case SizeNameWindowButtonIcon:
 		return 14
 	case SizeNameWindowTitleBarHeight:
 		return 26
+	case SizeNameCardRadius:
+		return 5
+	case SizeNameDialogRadius:
+		return 10
+	case SizeNamePopupRadius:
+		return 5
+	case SizeNameMenuRadius:
+		return 3
 
 	default:
 		return 0

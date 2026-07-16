@@ -12,6 +12,8 @@ import (
 	"fyne.io/fyne/v2/internal/painter"
 	"fyne.io/fyne/v2/internal/widget"
 	"fyne.io/fyne/v2/theme"
+
+	"github.com/mattn/go-runewidth"
 )
 
 const (
@@ -209,6 +211,8 @@ func (t *TextGrid) Text() string {
 			runes = append(runes, cell.Rune)
 			if cell.Rune == '\t' {
 				next = nextTab(col, t.tabWidth())
+			} else {
+				next = col + runewidth.StringWidth(string(cell.Rune))
 			}
 		}
 		if i < len(t.Rows)-1 {
@@ -249,6 +253,8 @@ func (t *TextGrid) RowText(row int) string {
 		runes = append(runes, cell.Rune)
 		if cell.Rune == '\t' {
 			next = nextTab(col, t.tabWidth())
+		} else {
+			next = col + runewidth.StringWidth(string(cell.Rune))
 		}
 	}
 	return string(runes)
@@ -399,14 +405,18 @@ func (t *TextGrid) parseRows(text string) []TextGridRow {
 	rows := make([]TextGridRow, len(lines))
 	for i, line := range lines {
 		cells := make([]TextGridCell, 0, len(line))
+		next := 0
+		col := 0
 		for _, r := range line {
 			cells = append(cells, TextGridCell{Rune: r})
 			if r == '\t' {
-				col := len(cells)
-				next := nextTab(col-1, t.tabWidth())
-				for i := col; i < next; i++ {
-					cells = append(cells, TextGridCell{Rune: ' '})
-				}
+				col = len(cells)
+				next = nextTab(col-1, t.tabWidth())
+			} else {
+				next = col - 1 + runewidth.StringWidth(string(r))
+			}
+			for i := col; i < next; i++ {
+				cells = append(cells, TextGridCell{Rune: ' '})
 			}
 		}
 		rows[i] = TextGridRow{Cells: cells}
@@ -882,7 +892,8 @@ func (t *textGridRowRenderer) MinSize() fyne.Size {
 
 	return fyne.NewSize(
 		t.obj.text.cellSize.Width*float32(len(t.obj.text.text.Rows[t.obj.row].Cells)),
-		t.obj.text.cellSize.Height)
+		t.obj.text.cellSize.Height,
+	)
 }
 
 func (t *textGridRowRenderer) Refresh() {

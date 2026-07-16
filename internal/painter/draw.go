@@ -12,7 +12,10 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-const quarterCircleControl = 1 - 0.55228
+const (
+	quarterCircleControl            = 1 - 0.55228
+	ArbitraryPolygonVerticesMaximum = 16
+)
 
 // DrawArc rasterizes the given arc object into an image.
 // The scale function is used to understand how many pixels are required per unit of size.
@@ -150,7 +153,7 @@ func DrawLine(line *canvas.Line, vectorPad float32, scale func(float32) float32)
 // DrawPolygon rasterizes the given regular polygon object into an image.
 // The bounds of the output image will be increased by vectorPad to allow for stroke overflow at the edges.
 // The scale function is used to understand how many pixels are required per unit of size.
-func DrawPolygon(polygon *canvas.Polygon, vectorPad float32, scale func(float32) float32) *image.RGBA {
+func DrawPolygon(polygon *canvas.RegularPolygon, vectorPad float32, scale func(float32) float32) *image.RGBA {
 	size := polygon.Size()
 
 	width := int(scale(size.Width + vectorPad*2))
@@ -175,6 +178,74 @@ func DrawPolygon(polygon *canvas.Polygon, vectorPad float32, scale func(float32)
 		dasher.SetColor(polygon.StrokeColor)
 		dasher.SetStroke(fixed.Int26_6(float64(scale(polygon.StrokeWidth))*64), 0, nil, nil, nil, 0, nil, 0)
 		drawRegularPolygon(float64(width/2), float64(height/2), float64(outerRadius), float64(cornerRadius), float64(angle), int(sides), dasher)
+		dasher.Draw()
+	}
+
+	return raw
+}
+
+// DrawArbitraryPolygon rasterizes the given arbitrary polygon object into an image.
+// The bounds of the output image will be increased by vectorPad to allow for stroke overflow at the edges.
+// The scale function is used to understand how many pixels are required per unit of size.
+func DrawArbitraryPolygon(polygon *canvas.ArbitraryPolygon, vectorPad float32, scale func(float32) float32) *image.RGBA {
+	size := polygon.Size()
+
+	width := int(scale(size.Width + vectorPad*2))
+	height := int(scale(size.Height + vectorPad*2))
+	vertices := polygon.Points
+	numPoints := int(fyne.Min(ArbitraryPolygonVerticesMaximum, float32(len(vertices))))
+
+	raw := image.NewRGBA(image.Rect(0, 0, width, height))
+	scanner := rasterx.NewScannerGV(int(size.Width), int(size.Height), raw, raw.Bounds())
+
+	if numPoints < 3 {
+		return raw
+	}
+
+	clampPoint := func(p fyne.Position) (float32, float32) {
+		return fyne.Min(fyne.Max(p.X, 0), fyne.Max(size.Width, 0)), fyne.Min(fyne.Max(p.Y, 0), fyne.Max(size.Height, 0))
+	}
+
+	xScaled := make([]float64, numPoints)
+	yScaled := make([]float64, numPoints)
+	cornerRadii := make([]float32, numPoints)
+
+	fixedPoints := make([]fyne.Position, numPoints)
+	for i := 0; i < numPoints; i++ {
+		px, py := vertices[i].X, vertices[i].Y
+		if polygon.NormalizedPoints {
+			px, py = px*size.Width, py*size.Height
+		}
+		px, py = clampPoint(fyne.NewPos(px, py))
+		fixedPoints[i] = fyne.NewPos(px, py)
+		xScaled[i] = float64(scale(px + vectorPad))
+		yScaled[i] = float64(scale(py + vectorPad))
+
+		var radius float32
+		if i < len(polygon.CornerRadii) {
+			radius = polygon.CornerRadii[i]
+		}
+		cornerRadii[i] = radius
+	}
+
+	cornerRadii = GetMaximumCornerRadii(fixedPoints, cornerRadii)
+	cornerRadiiScaled := make([]float64, numPoints)
+	for i := 0; i < numPoints; i++ {
+		cornerRadiiScaled[i] = float64(scale(cornerRadii[i]))
+	}
+
+	if polygon.FillColor != nil {
+		filler := rasterx.NewFiller(width, height, scanner)
+		filler.SetColor(polygon.FillColor)
+		drawArbitraryPolygon(xScaled, yScaled, cornerRadiiScaled, filler)
+		filler.Draw()
+	}
+
+	if polygon.StrokeColor != nil && polygon.StrokeWidth > 0 {
+		dasher := rasterx.NewDasher(width, height, scanner)
+		dasher.SetColor(polygon.StrokeColor)
+		dasher.SetStroke(fixed.Int26_6(float64(scale(polygon.StrokeWidth))*64), 0, nil, nil, nil, 0, nil, 0)
+		drawArbitraryPolygon(xScaled, yScaled, cornerRadiiScaled, dasher)
 		dasher.Draw()
 	}
 
@@ -330,6 +401,37 @@ func DrawBezierCurve(bezierCurve *canvas.BezierCurve, vectorPad float32, scale f
 	return raw
 }
 
+// DrawEllipse rasterizes the given ellipse object into an image.
+// The bounds of the output image will be increased by vectorPad to allow for stroke overflow at the edges.
+// The scale function is used to understand how many pixels are required per unit of size.
+func DrawEllipse(ellipse *canvas.Ellipse, vectorPad float32, scale func(float32) float32) *image.RGBA {
+	size := ellipse.Size()
+	radiusX := size.Width / 2
+	radiusY := size.Height / 2
+
+	width := int(scale(size.Width + vectorPad*2))
+	height := int(scale(size.Height + vectorPad*2))
+	stroke := scale(ellipse.StrokeWidth)
+
+	raw := image.NewRGBA(image.Rect(0, 0, width, height))
+	scanner := rasterx.NewScannerGV(int(size.Width), int(size.Height), raw, raw.Bounds())
+
+	if ellipse.FillColor != nil {
+		filler := rasterx.NewFiller(width, height, scanner)
+		filler.SetColor(ellipse.FillColor)
+		rasterx.AddEllipse(float64(width/2), float64(height/2), float64(scale(radiusX)), float64(scale(radiusY)), 0, filler)
+		filler.Draw()
+	}
+
+	dasher := rasterx.NewDasher(width, height, scanner)
+	dasher.SetColor(ellipse.StrokeColor)
+	dasher.SetStroke(fixed.Int26_6(float64(stroke)*64), 0, nil, nil, nil, 0, nil, 0)
+	rasterx.AddEllipse(float64(width/2), float64(height/2), float64(scale(radiusX)), float64(scale(radiusY)), 0, dasher)
+	dasher.Draw()
+
+	return raw
+}
+
 // drawRegularPolygon draws a regular n-sides centered at (cx,cy) with
 // radius, rounded corners of cornerRadius, rotated by rot degrees.
 func drawRegularPolygon(cx, cy, radius, cornerRadius, rot float64, sides int, p rasterx.Adder) {
@@ -422,20 +524,114 @@ func drawRegularPolygon(cx, cy, radius, cornerRadius, rot float64, sides int, p 
 
 	// start at s0, arc corner 0, then line+arc around, close last edge
 	p.Start(rasterx.ToFixedP(sPts[0].x, sPts[0].y))
-	gf(p,
+	gf(
+		p,
 		rasterx.ToFixedP(cPts[0].x, cPts[0].y),
 		rasterx.ToFixedP(vS[0].x, vS[0].y),
 		rasterx.ToFixedP(vE[0].x, vE[0].y),
 	)
 	for i := 1; i < sides; i++ {
 		p.Line(rasterx.ToFixedP(sPts[i].x, sPts[i].y))
-		gf(p,
+		gf(
+			p,
 			rasterx.ToFixedP(cPts[i].x, cPts[i].y),
 			rasterx.ToFixedP(vS[i].x, vS[i].y),
 			rasterx.ToFixedP(vE[i].x, vE[i].y),
 		)
 	}
 	p.Line(rasterx.ToFixedP(sPts[0].x, sPts[0].y))
+	p.Stop(true)
+}
+
+func drawArbitraryPolygon(xs, ys, radii []float64, p rasterx.Adder) {
+	num := len(xs)
+	if num < 3 {
+		return
+	}
+
+	type pt struct{ x, y float64 }
+
+	// helper for unit vectors
+	norm := func(x, y float64) (nx, ny float64) {
+		l := math.Hypot(x, y)
+		if l == 0 {
+			return 0, 0
+		}
+		return x / l, y / l
+	}
+
+	startPoints := make([]pt, num) // where the arc starts
+	endPoints := make([]pt, num)   // where the arc ends
+	centers := make([]pt, num)     // center of the rounding circle
+
+	for i := 0; i < num; i++ {
+		curr := pt{xs[i], ys[i]}
+		prev := pt{xs[(i-1+num)%num], ys[(i-1+num)%num]}
+		next := pt{xs[(i+1)%num], ys[(i+1)%num]}
+		r := radii[i]
+
+		// vector IN and vector OUT
+		vInX, vInY := norm(curr.x-prev.x, curr.y-prev.y)
+		vOutX, vOutY := norm(next.x-curr.x, next.y-curr.y)
+
+		// the angle between the two vectors
+		// we use the dot product of the normalized vectors
+		dot := vInX*vOutX + vInY*vOutY
+		// Clamp dot for safety
+		if dot < -1 {
+			dot = -1
+		} else if dot > 1 {
+			dot = 1
+		}
+
+		theta := math.Acos(dot) // this is the exterior angle
+
+		// distance from vertex to tangent point
+		// t = r * tan((pi - theta) / 2) -> which simplifies to r / tan(theta/2)
+		// but specifically for the interior angle:
+		halfAngle := (math.Pi - theta) / 2
+		dist := r / math.Tan(halfAngle)
+
+		// tangent points
+		startX, startY := curr.x-vInX*dist, curr.y-vInY*dist
+		endX, endY := curr.x+vOutX*dist, curr.y+vOutY*dist
+
+		// calculate center by rotating the In-vector 90 degrees and scaling by r
+		// we need to know if the turn is left or right (cross product)
+		cross := vInX*vOutY - vInY*vOutX
+		sign := 1.0
+		if cross < 0 {
+			sign = -1.0
+		}
+
+		// center is perpendicular to the tangent line at distance r
+		// rotate vIn by 90 degrees: (-y, x)
+		centerX := startX + (-vInY * r * sign)
+		centerY := startY + (vInX * r * sign)
+
+		startPoints[i] = pt{startX, startY}
+		endPoints[i] = pt{endX, endY}
+		centers[i] = pt{centerX, centerY}
+	}
+
+	// execution: draw the path
+	p.Start(rasterx.ToFixedP(startPoints[0].x, startPoints[0].y))
+
+	for i := 0; i < num; i++ {
+		nxtIdx := (i + 1) % num
+
+		// draw the arc at the current vertex
+		rasterx.RoundGap(
+			p,
+			rasterx.ToFixedP(centers[i].x, centers[i].y),
+			rasterx.ToFixedP(startPoints[i].x-centers[i].x, startPoints[i].y-centers[i].y),
+			rasterx.ToFixedP(endPoints[i].x-centers[i].x, endPoints[i].y-centers[i].y),
+		)
+
+		// line to the start of the next vertex's arc
+		p.Line(rasterx.ToFixedP(startPoints[nxtIdx].x, startPoints[nxtIdx].y))
+	}
+
 	p.Stop(true)
 }
 
@@ -750,4 +946,109 @@ func NormalizeBezierCurvePoints(startPoint, endPoint fyne.Position, controlPoint
 	}
 
 	return fyne.NewPos(p1x, p1y), fyne.NewPos(p2x, p2y), cp
+}
+
+// GetMaximumCornerRadii calculates the maximum possible corner radii for an arbitrary polygon with given vertices and desired corner radii.
+// It ensures that the specified corner radius do not cause overlaps between adjacent corners by calculating the interior angles at each vertex
+// and adjusting the radius proportionally if necessary. The function returns a slice of adjusted corner radii that fit within the geometry of the polygon.
+//
+// This is typically used for drawing arbitrary polygons with rounded corners, ensuring that the corners do not overlap and the shape remains visually consistent.
+func GetMaximumCornerRadii(points []fyne.Position, radii []float32) []float32 {
+	n := len(points)
+	if n < 3 || len(radii) != n {
+		return radii
+	}
+
+	calculateInteriorAngle := func(p1, p2, p3 fyne.Position) float64 {
+		v1 := fyne.Position{X: p1.X - p2.X, Y: p1.Y - p2.Y}
+		v2 := fyne.Position{X: p3.X - p2.X, Y: p3.Y - p2.Y}
+
+		angle1 := math.Atan2(float64(v1.Y), float64(v1.X))
+		angle2 := math.Atan2(float64(v2.Y), float64(v2.X))
+
+		diff := angle2 - angle1
+		for diff < -math.Pi {
+			diff += 2 * math.Pi
+		}
+		for diff > math.Pi {
+			diff -= 2 * math.Pi
+		}
+
+		return math.Abs(diff)
+	}
+
+	// calculate the interior angles and required segment lengths
+	segments := make([]float64, n)
+	for i := 0; i < n; i++ {
+		prev := points[(i+n-1)%n]
+		curr := points[i]
+		next := points[(i+1)%n]
+
+		angle := calculateInteriorAngle(prev, curr, next)
+		// distance from vertex to the tangent point of the arc
+		segments[i] = float64(radii[i]) / math.Tan(angle/2.0)
+	}
+
+	// calculate scaling factor for each edge
+	// use a global scale factor to maintain the relative proportions of the design
+	globalScale := 1.0
+
+	for i := 0; i < n; i++ {
+		p1 := points[i]
+		p2 := points[(i+1)%n]
+
+		edgeLen := math.Hypot(float64(p2.X-p1.X), float64(p2.Y-p1.Y))
+		combinedSegments := segments[i] + segments[(i+1)%n]
+
+		if combinedSegments > edgeLen {
+			edgeScale := edgeLen / combinedSegments
+			if edgeScale < globalScale {
+				globalScale = edgeScale
+			}
+		}
+	}
+
+	// apply the scale to the original radii
+	finalRadii := make([]float32, n)
+	for i := range radii {
+		finalRadii[i] = float32(float64(radii[i]) * globalScale)
+	}
+
+	return finalRadii
+}
+
+// GetShadowPaddings calculates the shadow paddings (left, top, right, bottom) based on offset, blur radius and spread
+func GetShadowPaddings(shadow canvas.Shadow) [4]float32 {
+	offsetX := shadow.Offset.X
+	offsetY := shadow.Offset.Y
+	softness := shadow.BlurRadius
+	spread := shadow.Spread
+
+	rightReach := offsetX + softness + spread
+	leftReach := -offsetX + softness + spread
+	topReach := -offsetY + softness + spread
+	bottomReach := offsetY + softness + spread
+
+	var padLeft, padRight, padTop, padBottom float32
+
+	if leftReach > 0 {
+		padLeft = leftReach
+	}
+	if rightReach > 0 {
+		padRight = rightReach
+	}
+	if topReach > 0 {
+		padTop = topReach
+	}
+	if bottomReach > 0 {
+		padBottom = bottomReach
+	}
+
+	// Returns paddings in order: left, top, right, bottom.
+	return [4]float32{padLeft, padTop, padRight, padBottom}
+}
+
+// IsShadowVisible determines if a shadow should be rendered based on its properties
+func IsShadowVisible(shadow canvas.Shadow) bool {
+	return shadow.Color != color.Transparent && shadow.Color != nil && (!shadow.Offset.IsZero() || shadow.BlurRadius > 0.0 || shadow.Variant != canvas.DropShadow || shadow.Spread > 0.0)
 }

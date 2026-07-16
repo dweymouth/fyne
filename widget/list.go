@@ -24,6 +24,13 @@ var (
 	_ fyne.Focusable = (*List)(nil)
 )
 
+type listBind struct {
+	listener annotatedListener
+
+	oldLength func() int                                  `json:"-"`
+	oldUpdate func(id ListItemID, item fyne.CanvasObject) `json:"-"`
+}
+
 // List is a widget that pools list items for performance and
 // lays the items out in a vertical direction inside of a scroller.
 // By default, List requires that all items are the same size, but specific
@@ -74,6 +81,8 @@ type List struct {
 	offsetY          float32
 	offsetUpdated    func(fyne.Position)
 	minSizeCache     fyne.Size
+
+	lastBind *listBind
 }
 
 // NewList creates and returns a list widget for displaying items in
@@ -100,10 +109,38 @@ func NewListWithData(data binding.DataList, createItem func() fyne.CanvasObject,
 				return
 			}
 			updateItem(item, o)
-		})
+		},
+	)
 
 	data.AddListener(binding.NewDataListener(l.Refresh))
 	return l
+}
+
+// Bind connects the specified data source to this List.
+// The current contents of the DataList will be used to determine length and content any changes in the data will cause the widget to update.
+// The same types of item will be used but the replacement `update` function will be called when an item should update.
+// Upon binding all items will update.
+//
+// Since: 2.8
+func (l *List) Bind(data binding.DataList, update func(di binding.DataItem, o fyne.CanvasObject)) {
+	l.Unbind()
+
+	oldLength := l.Length
+	oldUpdate := l.UpdateItem
+	l.Length = data.Length
+	l.UpdateItem = func(i ListItemID, o fyne.CanvasObject) {
+		item, err := data.GetItem(i)
+		if err != nil {
+			fyne.LogError(fmt.Sprintf("Error getting data item %d", i), err)
+			return
+		}
+		update(item, o)
+	}
+
+	fn := binding.NewDataListener(l.Refresh)
+	data.AddListener(fn)
+	l.lastBind = &listBind{listener: annotatedListener{data: data, listener: fn}, oldLength: oldLength, oldUpdate: oldUpdate}
+	l.Refresh()
 }
 
 // CreateRenderer is a private method to Fyne which links this widget to its renderer.
@@ -178,6 +215,23 @@ func (l *List) SetItemHeight(id ListItemID, height float32) {
 	}
 }
 
+// Unbind disconnects any configured data source from this List.
+// The contents will return to what was displayed before binding.
+// Upon unbinding all items will update.
+//
+// Since: 2.8
+func (l *List) Unbind() {
+	if l.lastBind == nil {
+		return
+	}
+
+	l.lastBind.listener.data.RemoveListener(l.lastBind.listener.listener)
+	l.UpdateItem = l.lastBind.oldUpdate
+	l.Length = l.lastBind.oldLength
+	l.lastBind = nil
+	l.Refresh()
+}
+
 func (l *List) scrollTo(id ListItemID) {
 	if l.scroller == nil {
 		return
@@ -221,6 +275,31 @@ func (l *List) Resize(s fyne.Size) {
 
 	l.offsetUpdated(l.scroller.Offset)
 	l.scroller.Content.(*fyne.Container).Layout.(*listLayout).updateList(true)
+}
+
+// Highlight scrolls to the item represented by id and highlights it
+//
+// Since: 2.8
+func (l *List) Highlight(id ListItemID) {
+	if l.Length() == 0 {
+		return
+	}
+
+	newID := id
+	if id < 0 {
+		newID = 0
+	}
+
+	if id > l.Length() {
+		newID = l.Length() - 1
+	}
+
+	l.scrollTo(newID)
+	l.currentHighlight = newID
+	if l.OnHighlighted != nil {
+		l.OnHighlighted(newID)
+	}
+	l.Refresh()
 }
 
 // Select add the item identified by the given ID to the selection.

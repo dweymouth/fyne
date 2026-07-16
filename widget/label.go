@@ -6,7 +6,10 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-var _ fyne.Widget = (*Label)(nil)
+var (
+	_ fyne.Widget     = (*Label)(nil)
+	_ fyne.Accessible = (*Label)(nil)
+)
 
 // Label widget is a label component with appropriate padding and layout.
 type Label struct {
@@ -68,6 +71,20 @@ func NewLabelWithStyle(text string, alignment fyne.TextAlign, style fyne.TextSty
 	return l
 }
 
+// AccessibilityLabel for a label is just the text for that label.
+//
+// Since: 2.8
+func (l *Label) AccessibilityLabel() string {
+	return l.Text
+}
+
+// AccessibilityRole for a label is fyne.AccessibleRoleText.
+//
+// Since: 2.8
+func (l *Label) AccessibilityRole() fyne.AccessibleRole {
+	return fyne.AccessibleRoleText
+}
+
 // Bind connects the specified data source to this Label.
 // The current value will be displayed and any changes in the data will cause the widget to update.
 //
@@ -122,9 +139,27 @@ func (l *Label) SelectedText() string {
 	return l.selection.SelectedText()
 }
 
+// ClearSelection removes any active text selection in this Label.
+// It has no effect if the Label is not Selectable or nothing is currently selected.
+//
+// Since: 2.9
+func (l *Label) ClearSelection() {
+	if !l.Selectable || l.selection == nil || !l.selection.selecting {
+		return
+	}
+	l.selection.selecting = false
+	l.Refresh()
+}
+
 // SetText sets the text of the label
 func (l *Label) SetText(text string) {
 	l.Text = text
+	if l.Selectable && l.selection != nil {
+		l.selection.cursorRow = 0
+		l.selection.cursorColumn = 0
+		l.selection.selectRow = 0
+		l.selection.selectColumn = 0
+	}
 	l.Refresh()
 }
 

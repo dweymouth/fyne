@@ -19,12 +19,12 @@ func Test_driver_AbsolutePositionForObject(t *testing.T) {
 
 	t.Run("for padded window", func(t *testing.T) {
 		w.SetPadded(true)
-		assert.Equal(t, fyne.NewPos(2, 1), d.AbsolutePositionForObject(o), "safe area offset (2,3) is subtracted")
+		assert.Equal(t, fyne.NewPos(4, 4), d.AbsolutePositionForObject(o), "safe area offset (2,3) is subtracted")
 	})
 
 	t.Run("for non-padded window", func(t *testing.T) {
 		w.SetPadded(false)
-		assert.Equal(t, fyne.NewPos(-2, -3), d.AbsolutePositionForObject(o), "safe area offset (2,3) is subtracted")
+		assert.Equal(t, fyne.NewPos(0, 0), d.AbsolutePositionForObject(o), "safe area offset (2,3) is subtracted")
 	})
 }
 

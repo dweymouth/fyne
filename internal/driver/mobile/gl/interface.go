@@ -106,6 +106,11 @@ type Context interface {
 	// http://www.khronos.org/opengles/sdk/docs/man3/html/glDeleteBuffers.xhtml
 	DeleteBuffer(v Buffer)
 
+	// DeleteProgram deletes the given program object.
+	//
+	// http://www.khronos.org/opengles/sdk/docs/man3/html/glDeleteProgram.xhtml
+	DeleteProgram(p Program)
+
 	// DeleteTexture deletes the given texture object.
 	//
 	// http://www.khronos.org/opengles/sdk/docs/man3/html/glDeleteTextures.xhtml
@@ -147,6 +152,9 @@ type Context interface {
 	//
 	// http://www.khronos.org/opengles/sdk/docs/man3/html/glGetError.xhtml
 	GetError() Enum
+
+	// GetInteger returns an integer OpenGL state value.
+	GetInteger(pname Enum) int
 
 	// GetProgrami returns a parameter value for a shader.
 	//
@@ -210,6 +218,11 @@ type Context interface {
 	// http://www.khronos.org/opengles/sdk/docs/man3/html/glTexParameter.xhtml
 	TexParameteri(target, pname Enum, param int)
 
+	// Uniform1i writes an int uniform variable.
+	//
+	// http://www.khronos.org/opengles/sdk/docs/man3/html/glUniform.xhtml
+	Uniform1i(dst Uniform, v int)
+
 	// Uniform1f writes a float uniform variable.
 	//
 	// http://www.khronos.org/opengles/sdk/docs/man3/html/glUniform.xhtml
@@ -224,6 +237,11 @@ type Context interface {
 	//
 	// http://www.khronos.org/opengles/sdk/docs/man3/html/glUniform.xhtml
 	Uniform2f(dst Uniform, v0, v1 float32)
+
+	// Uniform2fv writes a vec2 uniform array of len(src)/2 elements.
+	//
+	// http://www.khronos.org/opengles/sdk/docs/man3/html/glUniform.xhtml
+	Uniform2fv(dst Uniform, v []float32)
 
 	// Uniform4f writes a vec4 uniform variable.
 	//

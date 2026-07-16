@@ -13,7 +13,6 @@ import (
 	"fyne.io/fyne/v2/internal/driver"
 	"fyne.io/fyne/v2/internal/driver/common"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 )
 
 // Declare conformity with Canvas interface
@@ -113,13 +112,7 @@ func (c *glCanvas) Resize(size fyne.Size) {
 		c.webExtraWindows.Resize(size)
 	}
 	for _, overlay := range c.Overlays().List() {
-		if p, ok := overlay.(*widget.PopUp); ok {
-			// TODO: remove this when #707 is being addressed.
-			// “Notifies” the PopUp of the canvas size change.
-			p.Refresh()
-		} else {
-			overlay.Resize(nearestSize)
-		}
+		overlay.Resize(nearestSize)
 	}
 
 	content := c.content

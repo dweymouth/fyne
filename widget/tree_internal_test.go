@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/driver/software"
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/theme"
 
@@ -62,9 +63,10 @@ func TestTree(t *testing.T) {
 	t.Run("Initializer_Populated", func(t *testing.T) {
 		tree := &Tree{
 			ChildUIDs: func(uid string) (children []string) {
-				if uid == "" {
+				switch uid {
+				case "":
 					children = append(children, "a", "b", "c")
-				} else if uid == "c" {
+				case "c":
 					children = append(children, "d", "e", "f")
 				}
 				return children
@@ -102,9 +104,10 @@ func TestTree(t *testing.T) {
 	t.Run("NewTree", func(t *testing.T) {
 		tree := NewTree(
 			func(uid string) (children []string) {
-				if uid == "" {
+				switch uid {
+				case "":
 					children = append(children, "a", "b", "c")
-				} else if uid == "c" {
+				case "c":
 					children = append(children, "d", "e", "f")
 				}
 				return children
@@ -171,7 +174,7 @@ func TestTree_Focus(t *testing.T) {
 	defer window.Close()
 	window.Resize(tree.MinSize().Max(fyne.NewSize(150, 200)))
 
-	canvas := window.Canvas().(test.WindowlessCanvas)
+	canvas := window.Canvas().(software.WindowlessCanvas)
 	assert.Nil(t, canvas.Focused())
 
 	canvas.FocusNext()
@@ -222,7 +225,7 @@ func TestTree_Keyboard(t *testing.T) {
 	defer window.Close()
 	window.Resize(tree.MinSize().Max(fyne.NewSize(250, 400)))
 
-	canvas := window.Canvas().(test.WindowlessCanvas)
+	canvas := window.Canvas().(software.WindowlessCanvas)
 	assert.Nil(t, canvas.Focused())
 
 	// Start with a fully collapsed tree
@@ -449,7 +452,7 @@ func TestTree_MinSize(t *testing.T) {
 			opened: []string{"A"},
 			want: fyne.NewSize(
 				templateMinSize.Width+indentation()+2*theme.Padding()+theme.IconInlineSize(),
-				(fyne.Max(templateMinSize.Height, theme.IconInlineSize()))*2+separatorThickness,
+				fyne.Max(templateMinSize.Height, theme.IconInlineSize())*2+separatorThickness,
 			),
 		},
 		"multiple_items": {
@@ -466,7 +469,7 @@ func TestTree_MinSize(t *testing.T) {
 			},
 			want: fyne.NewSize(
 				templateMinSize.Width+2*theme.Padding()+theme.IconInlineSize(),
-				(fyne.Max(templateMinSize.Height, theme.IconInlineSize()))*2+separatorThickness,
+				fyne.Max(templateMinSize.Height, theme.IconInlineSize())*2+separatorThickness,
 			),
 		},
 		"multiple_items_opened": {
@@ -484,7 +487,7 @@ func TestTree_MinSize(t *testing.T) {
 			opened: []string{"A", "B", "C"},
 			want: fyne.NewSize(
 				templateMinSize.Width+2*indentation()+theme.IconInlineSize()+2*theme.Padding(),
-				(fyne.Max(templateMinSize.Height, theme.IconInlineSize()))*6+(5*separatorThickness),
+				fyne.Max(templateMinSize.Height, theme.IconInlineSize())*6+(5*separatorThickness),
 			),
 		},
 	} {
@@ -583,7 +586,7 @@ func TestTree_ScrollTo(t *testing.T) {
 	)
 
 	// Resize tall enough to display two nodes and the separator between them
-	treeHeight := 2*(min.Height) + sep
+	treeHeight := 2*min.Height + sep
 	w.Resize(fyne.Size{
 		Width:  100,
 		Height: treeHeight + 2*theme.Padding(),
@@ -625,7 +628,7 @@ func TestTree_ScrollToBottom(t *testing.T) {
 	)
 
 	// Resize tall enough to display two nodes and the separator between them
-	treeHeight := 2*(min.Height) + sep
+	treeHeight := 2*min.Height + sep
 	w.Resize(fyne.Size{
 		Width:  400,
 		Height: treeHeight + 2*theme.Padding(),
@@ -1061,5 +1064,33 @@ func TestTree_OpenBranches(t *testing.T) {
 		tree.openBranches("item_1_1_1")
 		assert.True(t, tree.IsBranchOpen("item_1"))
 		assert.True(t, tree.IsBranchOpen("item_1_1"))
+	})
+}
+
+func TestTree_Highlight(t *testing.T) {
+	treeData := map[string][]string{
+		"":         {"item_1", "item_2"},
+		"item_1":   {"item_1_1", "item_1_2"},
+		"item_2":   {"item_2_1", "item_2_2"},
+		"item_1_1": {"item_1_1_1", "item_1_1_2"},
+		"item_1_2": {"item_1_2_1", "item_1_2_2"},
+	}
+	tree := NewTreeWithStrings(treeData)
+	window := test.NewWindow(tree)
+	defer window.Close()
+
+	t.Run("non existing item", func(t *testing.T) {
+		tree.Highlight("non_existing")
+		assert.Equal(t, "", tree.currentHighlight)
+	})
+
+	t.Run("parent branch", func(t *testing.T) {
+		tree.Highlight("item_1")
+		assert.Equal(t, "item_1", tree.currentHighlight)
+	})
+
+	t.Run("child branch", func(t *testing.T) {
+		tree.Highlight("item_1_1_2")
+		assert.Equal(t, "item_1_1_2", tree.currentHighlight)
 	})
 }

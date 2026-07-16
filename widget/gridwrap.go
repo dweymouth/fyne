@@ -95,7 +95,8 @@ func NewGridWrapWithData(data binding.DataList, createItem func() fyne.CanvasObj
 				return
 			}
 			updateItem(item, o)
-		})
+		},
+	)
 
 	data.AddListener(binding.NewDataListener(gwList.Refresh))
 	return gwList
@@ -188,6 +189,31 @@ func (l *GridWrap) Resize(s fyne.Size) {
 		l.offsetUpdated(l.scroller.Offset)
 		l.scroller.Content.(*fyne.Container).Layout.(*gridWrapLayout).updateGrid(true)
 	}
+}
+
+// Highlight scrolls to the item represented by id and highlights it
+//
+// Since: 2.8
+func (l *GridWrap) Highlight(id GridWrapItemID) {
+	if l.Length() == 0 {
+		return
+	}
+
+	newID := id
+	if id < 0 {
+		newID = 0
+	}
+
+	if id > l.Length() {
+		newID = l.Length() - 1
+	}
+
+	l.scrollTo(newID)
+	l.currentHighlight = newID
+	if l.OnHighlighted != nil {
+		l.OnHighlighted(newID)
+	}
+	l.Refresh()
 }
 
 // Select adds the item identified by the given ID to the selection.

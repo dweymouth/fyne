@@ -120,30 +120,34 @@ func TestFileDialogResize(t *testing.T) {
 	size := fyne.NewSize(200, 180) // normal size to fit (600,400)
 	file.Resize(size)
 	expectedWidth := float32(200)
-	assert.Equal(t, expectedWidth, file.dialog.win.Content.Size().Width+theme.Padding()*2)
+	assert.Equal(t, expectedWidth, file.dialog.win.Content.Size().Width)
 	expectedHeight := float32(180)
-	assert.Equal(t, expectedHeight, file.dialog.win.Content.Size().Height+theme.Padding()*2)
+	assert.Equal(t, expectedHeight, file.dialog.win.Content.Size().Height)
 	// Test resize - normal size scenario again
 	size = fyne.NewSize(300, 280) // normal size to fit (600,400)
 	file.Resize(size)
 	expectedWidth = 300
-	assert.Equal(t, expectedWidth, file.dialog.win.Content.Size().Width+theme.Padding()*2)
+	assert.Equal(t, expectedWidth, file.dialog.win.Content.Size().Width)
 	expectedHeight = 280
-	assert.Equal(t, expectedHeight, file.dialog.win.Content.Size().Height+theme.Padding()*2)
+	assert.Equal(t, expectedHeight, file.dialog.win.Content.Size().Height)
+	file.Hide()
 
 	// Test resize - greater than max size scenario
 	size = fyne.NewSize(800, 600)
 	file.Resize(size)
+	file.Show()
 	expectedWidth = 600                                          // since win width only 600
 	assert.Equal(t, expectedWidth, file.dialog.win.Size().Width) // max, also work
-	assert.Equal(t, expectedWidth, file.dialog.win.Content.Size().Width+theme.Padding()*2)
+	assert.Equal(t, expectedWidth, file.dialog.win.Content.Size().Width)
 	expectedHeight = 400                                           // since win height only 400
 	assert.Equal(t, expectedHeight, file.dialog.win.Size().Height) // max, also work
-	assert.Equal(t, expectedHeight, file.dialog.win.Content.Size().Height+theme.Padding()*2)
+	assert.Equal(t, expectedHeight, file.dialog.win.Content.Size().Height)
+	file.Hide()
 
-	// Test again - extreme small size
+	// Test again - tiny size
 	size = fyne.NewSize(1, 1)
 	file.Resize(size)
+	file.Show()
 	expectedWidth = file.dialog.win.Content.MinSize().Width
 	assert.Equal(t, expectedWidth, file.dialog.win.Content.Size().Width)
 	expectedHeight = file.dialog.win.Content.MinSize().Height
@@ -166,7 +170,7 @@ func TestShowFileOpen(t *testing.T) {
 	d.SetLocation(dir)
 	d.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -256,7 +260,7 @@ func TestHiddenFiles(t *testing.T) {
 	d.SetLocation(dir)
 	d.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -307,7 +311,7 @@ func TestShowFileSave(t *testing.T) {
 	}, win)
 	saver.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -353,7 +357,7 @@ func TestShowFileSave(t *testing.T) {
 
 	// we are about to overwrite, a warning will show
 	test.Tap(save)
-	confirmUI := win.Canvas().Overlays().Top().(*widget.PopUp)
+	confirmUI := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	assert.NotEqual(t, confirmUI, popup)
 	confirmUI.Hide()
 
@@ -449,7 +453,7 @@ func TestFileSort(t *testing.T) {
 	d.SetLocation(dir)
 	d.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -489,7 +493,7 @@ func TestView(t *testing.T) {
 	dlg.SetDismissText("Dismiss")
 	dlg.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -555,7 +559,7 @@ func TestSetView(t *testing.T) {
 
 	dlg.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -607,7 +611,7 @@ func TestSetViewPreferences(t *testing.T) {
 
 	dlg.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -638,7 +642,7 @@ func TestViewPreferences(t *testing.T) {
 
 	dlg.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -675,7 +679,7 @@ func TestFileFavorites(t *testing.T) {
 
 	dlg.Show()
 
-	popup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	popup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(popup)
 	assert.NotNil(t, popup)
 
@@ -771,7 +775,7 @@ func TestCreateNewFolderInDir(t *testing.T) {
 	folderDialog.SetDismissText("Cancel")
 	folderDialog.Show()
 
-	folderDialogPopup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	folderDialogPopup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(folderDialogPopup)
 	assert.NotNil(t, folderDialogPopup)
 
@@ -784,7 +788,7 @@ func TestCreateNewFolderInDir(t *testing.T) {
 	// open folder name input dialog
 	test.Tap(createNewFolderButton)
 
-	inputPopup := win.Canvas().Overlays().Top().(*widget.PopUp)
+	inputPopup := win.Canvas().Overlays().Top().(*intWidget.OverlayContainer).Content.(*widget.PopUp)
 	defer win.Canvas().Overlays().Remove(inputPopup)
 	assert.NotNil(t, inputPopup)
 

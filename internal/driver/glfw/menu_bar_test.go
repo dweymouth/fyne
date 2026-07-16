@@ -9,6 +9,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/software"
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/widget"
 
@@ -17,7 +18,9 @@ import (
 )
 
 func TestMenuBar(t *testing.T) {
-	test.NewTempApp(t)
+	runOnMain(func() {
+		test.NewTempApp(t)
+	})
 
 	var lastAction string
 
@@ -475,7 +478,9 @@ func TestMenuBar(t *testing.T) {
 }
 
 func TestMenuBar_Toggle(t *testing.T) {
-	test.NewTempApp(t)
+	runOnMain(func() {
+		test.NewTempApp(t)
+	})
 
 	m1i1 := fyne.NewMenuItem("New", nil)
 	m1i2 := fyne.NewMenuItem("Open", nil)
@@ -540,7 +545,7 @@ func TestMenuBar_Toggle(t *testing.T) {
 		menuBar.Resize(fyne.NewSize(300, 0).Max(menuBar.MinSize()))
 
 		menuBar.Toggle()
-		c.(test.WindowlessCanvas).FocusNext()
+		c.(software.WindowlessCanvas).FocusNext()
 		require.True(t, menuBar.IsActive())
 		test.AssertRendersToMarkup(t, "menu_bar_toggle_second_item_active.xml", c)
 
@@ -559,7 +564,7 @@ type notFocusableButton struct {
 func newNotFocusableButton(l string, f func()) *notFocusableButton {
 	n := &notFocusableButton{f: f}
 	n.ExtendBaseWidget(n)
-	n.Label.Text = l
+	n.Text = l
 	return n
 }
 

@@ -3,6 +3,7 @@ package painter_test
 import (
 	"image"
 	"image/color"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -86,6 +87,51 @@ func TestDrawString(t *testing.T) {
 	}
 }
 
+func TestDrawStringOffset(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		text string
+	}{
+		{name: "long ascii", text: "0123456789" + strings.Repeat(" abcdefghijklmnopqrstuvwxyz", 60)},
+		{name: "ligatures", text: strings.Repeat("office affine official ", 40)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			style := fyne.TextStyle{}
+			size := float32(24)
+			color := color.Black
+			faces := painter.CachedFontFace(style, nil, nil)
+			fontMap := &intTest.FontMap{faces.Fonts.ResolveFace(' ')}
+			textSize, _ := painter.MeasureString(fontMap, tc.text, size, style)
+			width := int(textSize.Width) + 32
+			height := int(textSize.Height) + 32
+			offset := width / 3
+			cropWidth := width / 4
+
+			full := image.NewNRGBA(image.Rect(0, 0, width, height))
+			painter.DrawString(full, tc.text, color, fontMap, size, 1, style)
+
+			cropped := image.NewNRGBA(image.Rect(0, 0, cropWidth, height))
+			painter.DrawStringOffset(cropped, tc.text, color, fontMap, size, 1, style, offset)
+
+			maxDiff := 0
+			for y := 0; y < height; y++ {
+				fullStart := full.PixOffset(offset, y)
+				croppedStart := cropped.PixOffset(0, y)
+				for x := 0; x < cropWidth*4; x++ {
+					diff := int(full.Pix[fullStart+x]) - int(cropped.Pix[croppedStart+x])
+					if diff < 0 {
+						diff = -diff
+					}
+					if diff > maxDiff {
+						maxDiff = diff
+					}
+				}
+			}
+			assert.LessOrEqual(t, maxDiff, 8)
+		})
+	}
+}
+
 func TestMeasureString(t *testing.T) {
 	for name, tt := range map[string]struct {
 		style    fyne.TextStyle
@@ -131,12 +177,4 @@ func TestRenderedTextSize(t *testing.T) {
 	assert.Equal(t, int(size1.Width), int(size2.Width))
 	assert.Equal(t, size1.Height, size2.Height)
 	assert.Equal(t, baseline1, baseline2)
-}
-
-func TestHangul(t *testing.T) {
-	got := painter.CachedFontFace(fyne.TextStyle{}, nil, nil)
-	f := got.Fonts.ResolveFace('안')
-	gid, ok := f.Cmap.Lookup('안')
-	assert.True(t, ok)
-	assert.NotZero(t, gid)
 }

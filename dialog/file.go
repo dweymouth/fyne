@@ -239,17 +239,20 @@ func (f *fileDialog) makeUI() fyne.CanvasObject {
 		optionsButton,
 	)
 
-	header := container.NewBorder(nil, nil, nil, optionsbuttons,
+	header := container.NewBorder(
+		nil, nil, nil, optionsbuttons,
 		f.title,
 	)
 
-	footer := container.NewBorder(nil, nil, nil, buttons,
+	footer := container.NewBorder(
+		nil, nil, nil, buttons,
 		container.NewHScroll(f.fileName),
 	)
 
 	body := container.NewHSplit(
 		f.favoritesList,
-		container.NewBorder(f.breadcrumbScroll, nil, nil, nil,
+		container.NewBorder(
+			f.breadcrumbScroll, nil, nil, nil,
 			f.filesScroll,
 		),
 	)
@@ -470,9 +473,10 @@ func (f *fileDialog) refreshDir(dir fyne.ListableURI) {
 	f.filesScroll.Refresh()
 }
 
-func (f *fileDialog) setLocation(dir fyne.URI) error {
+func (f *fileDialog) setLocation(dir fyne.URI) {
 	if dir == nil {
-		return errors.New("failed to open nil directory")
+		fyne.LogError("failed to open nil directory", nil)
+		return
 	}
 
 	if f.selectedID > -1 {
@@ -481,7 +485,8 @@ func (f *fileDialog) setLocation(dir fyne.URI) error {
 
 	list, err := storage.ListerForURI(dir)
 	if err != nil {
-		return err
+		fyne.LogError("unable to get ListableURI for "+dir.String(), err)
+		return
 	}
 
 	fyne.CurrentApp().Preferences().SetString(lastFolderKey, dir.String())
@@ -505,10 +510,7 @@ func (f *fileDialog) setLocation(dir fyne.URI) error {
 		currentParent := parent
 		f.breadcrumb.Add(
 			widget.NewButton(currentParent.Name(), func() {
-				err := f.setLocation(currentParent)
-				if err != nil {
-					fyne.LogError("Failed to set directory", err)
-				}
+				f.setLocation(currentParent)
 			}),
 		)
 	}
@@ -528,8 +530,6 @@ func (f *fileDialog) setLocation(dir fyne.URI) error {
 		f.open.Enable()
 	}
 	f.refreshDir(list)
-
-	return nil
 }
 
 func (f *fileDialog) setSelected(file fyne.URI, id int) {
@@ -749,11 +749,11 @@ func (f *FileDialog) Refresh() {
 // Resize dialog to the requested size, if there is sufficient space.
 // If the parent window is not large enough then the size will be reduced to fit.
 func (f *FileDialog) Resize(size fyne.Size) {
-	f.desiredSize = size
+	f.desiredSize = size.Max(f.MinSize())
 	if f.dialog == nil {
 		return
 	}
-	f.dialog.win.Resize(size)
+	f.dialog.win.Resize(size.Max(f.MinSize()))
 }
 
 // Hide hides the file dialog.

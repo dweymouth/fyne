@@ -79,7 +79,8 @@ func makeActivityTab(win fyne.Window) fyne.CanvasObject {
 	return container.NewCenter(container.NewGridWithColumns(1,
 		container.NewCenter(container.NewVBox(
 			container.NewHBox(widget.NewLabel("Working..."), a1),
-			container.NewStack(button, a2))),
+			container.NewStack(button, a2),
+		)),
 		container.NewCenter(widget.NewButton("Show dialog", func() {
 			prop := canvas.NewRectangle(color.Transparent)
 			prop.SetMinSize(fyne.NewSize(50, 50))
@@ -103,11 +104,13 @@ func makeButtonTab(_ fyne.Window) fyne.CanvasObject {
 	disabled.Disable()
 
 	shareItem := fyne.NewMenuItem("Share via", nil)
-	shareItem.ChildMenu = fyne.NewMenu("",
+	shareItem.ChildMenu = fyne.NewMenu(
+		"",
 		fyne.NewMenuItem("Twitter", func() { fmt.Println("context menu Share->Twitter") }),
 		fyne.NewMenuItem("Reddit", func() { fmt.Println("context menu Share->Reddit") }),
 	)
-	menuLabel := newContextMenuButton("tap me for pop-up menu with submenus", fyne.NewMenu("",
+	menuLabel := newContextMenuButton("tap me for pop-up menu with submenus", fyne.NewMenu(
+		"",
 		fyne.NewMenuItem("Copy", func() { fmt.Println("context menu copy") }),
 		shareItem,
 	))
@@ -181,7 +184,8 @@ func makeEntryTab(_ fyne.Window) fyne.CanvasObject {
 		entry,
 		entryDisabled,
 		entryValidated,
-		entryMultiLine)
+		entryMultiLine,
+	)
 }
 
 func makeTextGrid() *widget.TextGrid {
@@ -241,7 +245,6 @@ This styled row should also wrap as expected, but only *when required*.
 
 > An interesting quote here, most likely sharing some very interesting wisdom.`)
 	rich.Scroll = container.ScrollBoth
-	rich.Segments[2].(*widget.ImageSegment).Alignment = fyne.TextAlignTrailing
 
 	radioAlign := widget.NewRadioGroup([]string{"Leading", "Center", "Trailing"}, func(s string) {
 		var align fyne.TextAlign
@@ -256,12 +259,14 @@ This styled row should also wrap as expected, but only *when required*.
 
 		label.Alignment = align
 		hyperlink.Alignment = align
-		for i := range rich.Segments {
-			if seg, ok := rich.Segments[i].(*widget.TextSegment); ok {
-				seg.Style.Alignment = align
-			}
-			if seg, ok := rich.Segments[i].(*widget.HyperlinkSegment); ok {
-				seg.Alignment = align
+		for _, r := range rich.Segments {
+			switch t := r.(type) {
+			case *widget.TextSegment:
+				t.Style.Alignment = align
+			case *widget.HyperlinkSegment:
+				t.Alignment = align
+			case *widget.ImageSegment:
+				t.Alignment = align
 			}
 		}
 
@@ -327,7 +332,8 @@ This styled row should also wrap as expected, but only *when required*.
 		widget.NewForm(
 			widget.NewFormItem("Text Alignment", radioAlign),
 			widget.NewFormItem("Wrapping", radioWrap),
-			widget.NewFormItem("Truncation", radioTrunc)),
+			widget.NewFormItem("Truncation", radioTrunc),
+		),
 		label,
 		hyperlink,
 	)
@@ -423,7 +429,8 @@ func makeProgressTab(_ fyne.Window) fyne.CanvasObject {
 	return container.NewVBox(
 		widget.NewLabel("Percent"), progress,
 		widget.NewLabel("Formatted"), fprogress,
-		widget.NewLabel("Infinite"), infProgress)
+		widget.NewLabel("Infinite"), infProgress,
+	)
 }
 
 func makeFormTab(_ fyne.Window) fyne.CanvasObject {
@@ -461,11 +468,16 @@ func makeFormTab(_ fyne.Window) fyne.CanvasObject {
 	form.Append("Password", password)
 	form.Append("Disabled", disabled)
 	form.Append("Message", largeText)
+
+	form.Items[2].Required = true
+	form.Items[3].Required = true
+	form.Refresh()
 	return form
 }
 
 func makeToolbarTab(_ fyne.Window) fyne.CanvasObject {
-	t := widget.NewToolbar(widget.NewToolbarAction(theme.MailComposeIcon(), func() { fmt.Println("New") }),
+	t := widget.NewToolbar(
+		widget.NewToolbarAction(theme.MailComposeIcon(), func() { fmt.Println("New") }),
 		widget.NewToolbarSeparator(),
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(theme.ContentCutIcon(), func() { fmt.Println("Cut") }),
@@ -481,7 +493,8 @@ func widgetScreen(_ fyne.Window) fyne.CanvasObject {
 	content := container.NewVBox(
 		widget.NewLabel("Labels"),
 		widget.NewButtonWithIcon("Icons", theme.HomeIcon(), func() {}),
-		widget.NewSlider(0, 1))
+		widget.NewSlider(0, 1),
+	)
 	return container.NewCenter(content)
 }
 
