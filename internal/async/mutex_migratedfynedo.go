@@ -1,4 +1,5 @@
 //go:build migrated_fynedo
+
 package async
 
 // Mutex is a no-op sync.Locker for when we are running single-threaded

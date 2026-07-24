@@ -266,7 +266,6 @@ func tabStop(spacew, x float32, tabWidth int) float32 {
 	return tabw * float32(tabs)
 }
 
-
 type shapedRun struct {
 	out shaping.Output
 	x   float32
@@ -308,8 +307,6 @@ func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style f
 		spacew = scale * fixed266ToFloat32(out.Advance)
 	}
 
-	runBufferMut.Lock()
-
 	maxAscent := fixed.Int26_6(0)
 	collect := func(run shaping.Output, runX float32) {
 		if run.LineBounds.Ascent > maxAscent {
@@ -319,6 +316,7 @@ func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style f
 	}
 
 	ins := segmenter.Split(in, faces)
+	runBufferMut.Lock()
 	for _, in := range ins {
 		inEnd := in.RunEnd
 
