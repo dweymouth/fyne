@@ -266,6 +266,17 @@ func tabStop(spacew, x float32, tabWidth int) float32 {
 	return tabw * float32(tabs)
 }
 
+
+type shapedRun struct {
+	out shaping.Output
+	x   float32
+}
+
+var (
+	runBuffer    []shapedRun
+	runBufferMut async.Mutex
+)
+
 // walkString shapes s and invokes cb once per shaped run, in left-to-right order.
 // All runs share a single ascent (the max ascent of any run in the string), so that
 // runs shaped in different fallback fonts (e.g. mixed-script or emoji + text)
@@ -297,13 +308,14 @@ func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style f
 		spacew = scale * fixed266ToFloat32(out.Advance)
 	}
 
-	var runs []shapedRun
+	runBufferMut.Lock()
+
 	maxAscent := fixed.Int26_6(0)
 	collect := func(run shaping.Output, runX float32) {
 		if run.LineBounds.Ascent > maxAscent {
 			maxAscent = run.LineBounds.Ascent
 		}
-		runs = append(runs, shapedRun{out: run, x: runX})
+		runBuffer = append(runBuffer, shapedRun{out: run, x: runX})
 	}
 
 	ins := segmenter.Split(in, faces)
@@ -331,18 +343,16 @@ func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style f
 	}
 
 	y := fixed266ToFloat32(maxAscent) * scale
-	for _, run := range runs {
+	for _, run := range runBuffer {
 		cb(run.out, run.x, y)
 	}
+	clear(runBuffer)
+	runBuffer = runBuffer[:0]
+	runBufferMut.Unlock()
 
 	*advance = x
 	return fyne.NewSize(*advance, fixed266ToFloat32(out.LineBounds.LineThickness())),
 		fixed266ToFloat32(out.LineBounds.Ascent)
-}
-
-type shapedRun struct {
-	out shaping.Output
-	x   float32
 }
 
 func shapeCallback(in shaping.Input, x, scale float32, cb func(shaping.Output, float32)) float32 {
