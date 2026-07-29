@@ -5,7 +5,6 @@ package glfw
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"image"
 	_ "image/png" // for the icon
 	"os"
@@ -661,7 +660,8 @@ func keyToName(code glfw.Key, scancode int) fyne.KeyName {
 func safeGetKeyName(key glfw.Key, scancode int) string {
 	defer func() {
 		if r := recover(); r != nil {
-			fyne.LogError(fmt.Sprintf("Unknown GLFW key scancode: %v", scancode), nil)
+			err, _ := r.(error)
+			fyne.LogError("Failed to get GLFW key name", err)
 		}
 	}()
 	return glfw.GetKeyName(key, scancode)
