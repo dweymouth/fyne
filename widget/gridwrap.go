@@ -745,9 +745,7 @@ func (l *gridWrapLayout) updateGrid(newOnly bool) {
 
 	// we don't need wasVisible now until next call to update
 	// nil out all references before truncating slice
-	for i := 0; i < len(l.wasVisible); i++ {
-		l.wasVisible[i].item = nil
-	}
+	clear(l.wasVisible)
 	l.wasVisible = l.wasVisible[:0]
 }
 
@@ -764,8 +762,6 @@ func (*gridWrapLayout) searchVisible(visible []gridItemAndID, id GridWrapItemID)
 func (*gridWrapLayout) nilOldSliceData(objs []fyne.CanvasObject, length, oldLength int) {
 	if oldLength > length {
 		objs = objs[:oldLength] // gain view into old data
-		for i := length; i < oldLength; i++ {
-			objs[i] = nil
-		}
+		clear(objs[length:])
 	}
 }
