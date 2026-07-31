@@ -203,14 +203,14 @@ func DrawStringOffset(dst draw.Image, s string, color color.Color, f shaping.Fon
 	}
 
 	advance := float32(0)
-	walkString(f, s, float32ToFixed266(fontSize), style, &advance, scale, func(run shaping.Output, x float32) {
-		y := int(math.Ceil(float64(fixed266ToFloat32(run.LineBounds.Ascent) * r.PixScale)))
+	walkString(f, s, float32ToFixed266(fontSize), style, &advance, scale, func(run shaping.Output, x, y float32) {
+		yPix := int(math.Ceil(float64(y)))
 		if len(run.Glyphs) == 1 && run.Glyphs[0].GlyphID == 0 {
-			r.DrawStringAt(string([]rune{replacementChar}), dst, int(x)-offset, y, f.ResolveFace(replacementChar))
+			r.DrawStringAt(string([]rune{replacementChar}), dst, int(x)-offset, yPix, f.ResolveFace(replacementChar))
 			return
 		}
 
-		r.DrawShapedRunAt(run, dst, int(x)-offset, y)
+		r.DrawShapedRunAt(run, dst, int(x)-offset, yPix)
 	})
 }
 
@@ -227,7 +227,7 @@ func loadMeasureFont(data fyne.Resource) *font.Face {
 // MeasureString returns how far dot would advance by drawing s with f.
 // Tabs are translated into a dot location change.
 func MeasureString(f shaping.Fontmap, s string, textSize float32, style fyne.TextStyle) (size fyne.Size, advance float32) {
-	return walkString(f, s, float32ToFixed266(textSize), style, &advance, 1, func(shaping.Output, float32) {})
+	return walkString(f, s, float32ToFixed266(textSize), style, &advance, 1, func(shaping.Output, float32, float32) {})
 }
 
 // RenderedTextSize looks up how big a string would be if drawn on screen.
@@ -266,8 +266,12 @@ func tabStop(spacew, x float32, tabWidth int) float32 {
 	return tabw * float32(tabs)
 }
 
+// walkString shapes s and invokes cb once per shaped run, in left-to-right order.
+// All runs share a single ascent (the max ascent of any run in the string), so that
+// runs shaped in different fallback fonts (e.g. mixed-script or emoji + text)
+// still align on a common baseline
 func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style fyne.TextStyle, advance *float32, scale float32,
-	cb func(run shaping.Output, x float32),
+	cb func(run shaping.Output, x, y float32),
 ) (size fyne.Size, base float32) {
 	s = strings.ReplaceAll(s, "\r", "")
 
@@ -292,6 +296,16 @@ func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style f
 	if style.Monospace {
 		spacew = scale * fixed266ToFloat32(out.Advance)
 	}
+
+	var runs []shapedRun
+	maxAscent := fixed.Int26_6(0)
+	collect := func(run shaping.Output, runX float32) {
+		if run.LineBounds.Ascent > maxAscent {
+			maxAscent = run.LineBounds.Ascent
+		}
+		runs = append(runs, shapedRun{out: run, x: runX})
+	}
+
 	ins := segmenter.Split(in, faces)
 	for _, in := range ins {
 		inEnd := in.RunEnd
@@ -301,7 +315,7 @@ func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style f
 			if r == '\t' {
 				if pending {
 					in.RunEnd = i
-					x = shapeCallback(in, x, scale, cb)
+					x = shapeCallback(in, x, scale, collect)
 				}
 				x = tabStop(spacew, x, style.TabWidth)
 
@@ -313,12 +327,22 @@ func walkString(faces shaping.Fontmap, s string, textSize fixed.Int26_6, style f
 			}
 		}
 
-		x = shapeCallback(in, x, scale, cb)
+		x = shapeCallback(in, x, scale, collect)
+	}
+
+	y := fixed266ToFloat32(maxAscent) * scale
+	for _, run := range runs {
+		cb(run.out, run.x, y)
 	}
 
 	*advance = x
 	return fyne.NewSize(*advance, fixed266ToFloat32(out.LineBounds.LineThickness())),
 		fixed266ToFloat32(out.LineBounds.Ascent)
+}
+
+type shapedRun struct {
+	out shaping.Output
+	x   float32
 }
 
 func shapeCallback(in shaping.Input, x, scale float32, cb func(shaping.Output, float32)) float32 {
