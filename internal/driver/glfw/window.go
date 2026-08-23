@@ -793,9 +793,7 @@ func (w *window) processFocused(focus bool) {
 		}
 
 		curWindow = nil
-		if f := fyne.CurrentApp().Lifecycle().(*app.Lifecycle).OnExitedForeground(); f != nil {
-			f()
-		}
+		w.driver.handleExitedForeground()
 	}
 }
 
